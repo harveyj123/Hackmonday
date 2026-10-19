@@ -1,0 +1,9 @@
+{
+  "name": "Your Name",
+  "email": "you@example.com",
+  "linkedinUrl": "https://www.linkedin.com/in/your-handle",
+  "city": "San Francisco",
+  "oneLiner": "AI engineer building Nomi, a desktop companion that shapes your offline environment around your goals.",
+  "building": "Nomi: Parallel finds the right rooms, a model decides, and Nomi gets you in.",
+  "interests": ["AI agents", "developer tools", "climbing"]
+}
