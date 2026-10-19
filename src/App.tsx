@@ -1,7 +1,5 @@
-"use client";
-
 // Shared shell. The only coupling between features is the ActionItem hand-off below.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ModeToggle, type Mode } from "@/components/ModeToggle";
 import { DailyView } from "@/features/daily/DailyView";
 import { BotsView } from "@/features/bots/BotsView";
@@ -10,6 +8,9 @@ import type { ActionItem } from "@/lib/types";
 export default function Home() {
   const [mode, setMode] = useState<Mode>("daily");
   const [handoff, setHandoff] = useState<ActionItem | null>(null);
+
+  // Clicking Sprout on the desktop (or the tray's "Open Daily check-in") lands here.
+  useEffect(() => window.nomi?.onShowDaily(() => setMode("daily")), []);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">

@@ -1,5 +1,4 @@
 // Owned by Daily. Turns a free-text day into a DayEntry (plus a magazine headline).
-import { NextResponse } from "next/server";
 import { chat } from "@/lib/llm";
 import type { DailyRequest } from "@/lib/types";
 import { mockDay, normalizeDay } from "@/features/daily/mock";
@@ -28,11 +27,11 @@ Return JSON matching: {headline, segments: [{id, time: "HH:MM", place, people: s
       ],
       { json: true, provider: process.env.DAILY_LLM_PROVIDER },
     );
-    if (out) return NextResponse.json(normalizeDay(body.date, text, JSON.parse(stripFence(out))) satisfies StoryDay);
+    if (out) return Response.json(normalizeDay(body.date, text, JSON.parse(stripFence(out))) satisfies StoryDay);
   } catch (e) {
     console.error("[daily] falling back to mock:", e);
   }
-  return NextResponse.json(mockDay(body.date, text) satisfies StoryDay);
+  return Response.json(mockDay(body.date, text) satisfies StoryDay);
 }
 
 function stripFence(s: string) {

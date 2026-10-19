@@ -1,0 +1,10 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "node:path";
+
+// Renderer build. The Electron main process serves dist/ on app://nomi (see electron/main.ts).
+export default defineConfig({
+  plugins: [react()],
+  resolve: { alias: { "@": path.resolve(__dirname) } },
+  build: { outDir: "dist", emptyOutDir: true },
+});

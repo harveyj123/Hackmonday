@@ -1,5 +1,4 @@
 // Owned by Bots. One turn of a Nomi bot: Parallel to find, open model to decide, Apple Calendar to act.
-import { NextResponse } from "next/server";
 import type { AgentRequest, AgentResponse } from "@/lib/types";
 import { runApprovedAction } from "@/lib/composio";
 import { icsLink, type CalendarEvent } from "@/lib/calendar";
@@ -11,7 +10,7 @@ export async function POST(req: Request) {
     const last = body.history.findLast((m) => m.approval?.id === body.approve);
     if (last?.approval?.kind === "calendar_hold") {
       const event = last.approval.payload as CalendarEvent;
-      return NextResponse.json({
+      return Response.json({
         messages: [
           {
             id: crypto.randomUUID(),
@@ -25,7 +24,7 @@ export async function POST(req: Request) {
       } satisfies AgentResponse);
     }
     const result = last?.approval ? await runApprovedAction(last.approval) : { ok: false, detail: "Nothing to approve" };
-    return NextResponse.json({
+    return Response.json({
       messages: [{ id: crypto.randomUUID(), role: "bot", text: result.ok ? "done! sent it 💌" : `hmm, that failed: ${result.detail}` }],
       tasks: [],
       status: result.ok ? "sent" : "error",
@@ -73,5 +72,5 @@ export async function POST(req: Request) {
       },
     ],
   };
-  return NextResponse.json(res);
+  return Response.json(res);
 }
