@@ -166,6 +166,16 @@ function demoReset() {
   petWindow?.webContents.send("nomi:pet", "demo-reset");
 }
 
+// The demo controls, in the order you'd use them on stage. They're in the tray menu, in Sprout's
+// right-click menu, and on ⌥⌘ + a number so they work with any app in front.
+const DEMO_ITEMS = [
+  { label: "Bots: suggest something", key: "1", click: demoSuggest },
+  { label: "Skip to the next plan's day", key: "2", click: demoNewDay },
+  { label: "Nudge my next plan now", key: "3", click: demoNudge },
+  { label: "Start the demo over", key: "0", click: demoReset },
+];
+const demoMenu = () => DEMO_ITEMS.map(({ label, key, click }) => ({ label, accelerator: `Alt+CommandOrControl+${key}`, click }));
+
 function createTray() {
   tray = new Tray(nativeImage.createEmpty());
   tray.setTitle("🌱");
@@ -174,17 +184,16 @@ function createTray() {
     Menu.buildFromTemplate([
       { label: "Open Nomi Daily", click: openDaily },
       { label: "Open Nomi Bots", click: () => openBots() },
-      { label: "Demo: nudge the next plan (⌘⌥⇧N)", click: demoNudge },
-      { label: "Demo: a bot suggestion (⌘⌥⇧B)", click: demoSuggest },
-      { label: "Demo: skip to the next plan's day (⌘⌥⇧D)", click: demoNewDay },
-      { label: "Demo: start over (⌘⌥⇧R)", click: demoReset },
-      { label: "Show / hide Sprout", click: () => (petWindow?.isVisible() ? petWindow.hide() : petWindow?.show()) },
       { type: "separator" },
+      ...demoMenu(),
+      { type: "separator" },
+      { label: "Show / hide Sprout", click: () => (petWindow?.isVisible() ? petWindow.hide() : petWindow?.show()) },
       { label: "Quit Nomi", click: () => app.quit() },
     ]),
   );
 }
 
+ipcMain.on("pet:menu", () => petWindow && Menu.buildFromTemplate([{ label: "Open Nomi Bots", click: () => openBots() }, { type: "separator" }, ...demoMenu()]).popup({ window: petWindow }));
 ipcMain.on("pet:view", (_e, view: PetView) => PET_SIZES[view] && setPetView(view));
 ipcMain.on("pet:hit", (_e, hit: boolean) => CLICK_THROUGH && petWindow?.setIgnoreMouseEvents(!hit, { forward: true }));
 ipcMain.on("nomi:open-daily", openDaily);
@@ -200,11 +209,7 @@ app.whenReady().then(() => {
   createMainWindow();
   createPetWindow();
   createTray();
-  // Global so it works on stage with any app in front; Option keeps it off common app shortcuts like ⌘⇧N.
-  globalShortcut.register("CommandOrControl+Alt+Shift+N", demoNudge);
-  globalShortcut.register("CommandOrControl+Alt+Shift+B", demoSuggest);
-  globalShortcut.register("CommandOrControl+Alt+Shift+D", demoNewDay);
-  globalShortcut.register("CommandOrControl+Alt+Shift+R", demoReset);
+  for (const { key, click } of DEMO_ITEMS) globalShortcut.register(`Alt+CommandOrControl+${key}`, click);
   app.on("activate", () => openBots());
 });
 
