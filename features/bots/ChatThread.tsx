@@ -1,8 +1,8 @@
 "use client";
 
-// Conversation view with Grok-style compact bubbles and Nomi's approval/task controls.
+// Conversation view in iMessage style (the demo walkthrough's scene 7) and Nomi's approval/task controls.
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { TaskProgress } from "./TaskProgress";
 import type { ActionItem, AgentRequest, AgentResponse, Bot, BotId, BotTask, ChatMessage, MemoryCandidate, NomiMemory } from "@/lib/types";
 
@@ -42,7 +42,6 @@ export function ChatThread({
   onSessionChange,
   onMemoriesLearned,
   onForgetMemory,
-  onBack,
   onOpenDaily,
   onNewChat,
 }: {
@@ -54,11 +53,10 @@ export function ChatThread({
   onSessionChange: (session: ChatSession) => void;
   onMemoriesLearned: (memories: MemoryCandidate[]) => void;
   onForgetMemory: (id: string) => void;
-  onBack: () => void;
   onOpenDaily?: () => void;
   onNewChat?: () => void;
 }) {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialSession?.messages ?? [welcomeMessage(bot)]);
+  const [messages, setMessages] = useState<ChatMessage[]>(initialSession?.messages ?? (handoff ? [] : [welcomeMessage(bot)]));
   const [tasks, setTasks] = useState<BotTask[]>(initialSession?.tasks ?? []);
   const [status, setStatus] = useState(initialSession?.status ?? "Ready when you are");
   const [expanded, setExpanded] = useState(false);
@@ -82,7 +80,8 @@ export function ChatThread({
     const nextHistory = userText
       ? [...messages, { id: crypto.randomUUID(), role: "user" as const, text: userText }]
       : messages;
-    setMessages(nextHistory);
+    // A routed request gets an instant "on it", like texting a friend, while the bot searches.
+    setMessages(req.handoff ? [...nextHistory, { id: crypto.randomUUID(), role: "bot", text: "ok I’m on it 👀" }] : nextHistory);
     setSending(true);
     setStatus(activeStatus(req, bot));
 
@@ -134,84 +133,65 @@ export function ChatThread({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handoff]);
 
+  const stamp = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
   return (
-    <div className="flex h-full min-w-0 flex-1 flex-col bg-white">
-      <header className="relative flex h-12 shrink-0 items-center border-b border-[#ececec] px-4 sm:px-5">
-        <button
-          type="button"
-          onClick={onBack}
-          className="mr-3 grid h-8 w-8 place-items-center rounded-full text-xl text-neutral-500 hover:bg-black/5 min-[500px]:hidden"
-          aria-label="Back to bots"
-        >
-          ‹
-        </button>
+    <>
+      <header className="hd drag">
         {avatar}
-        <div className="ml-2.5 flex min-w-0 items-baseline gap-1.5">
-          <p className="shrink-0 text-[13px] font-semibold text-neutral-900">{bot.name}</p>
-          <button
-            type="button"
-            onClick={() => tasks.length && setExpanded((value) => !value)}
-            className={`flex min-w-0 items-center gap-1 truncate text-[12px] ${sending ? "text-[#2f5fd0]" : "text-[#8a8a8e]"}`}
-          >
-            {sending && <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#2f5fd0]" />}
-            <span className="truncate">· {status}</span>
-            {tasks.length > 0 && <span>{expanded ? "▴" : "▾"}</span>}
+        <b>{bot.name}</b>
+        <small>
+          {sending && <span className="pulse" />}
+          <button type="button" className="s" onClick={() => tasks.length && setExpanded((value) => !value)}>
+            · {status}
+            {tasks.length > 0 && (expanded ? " ▴" : " ▾")}
           </button>
-        </div>
-        <div className="ml-auto flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setShowMemory((value) => !value)}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${showMemory ? "bg-neutral-900 text-white" : "text-neutral-500 hover:bg-black/5 hover:text-neutral-900"}`}
-          >
+        </small>
+        <div className="tools">
+          <button type="button" className={showMemory ? "on" : ""} onClick={() => setShowMemory((value) => !value)}>
             Memory{memories.length ? ` · ${memories.length}` : ""}
           </button>
-          {onOpenDaily && <button
-            type="button"
-            onClick={onOpenDaily}
-            className="hidden rounded-full px-3 py-1.5 text-xs font-medium text-neutral-500 transition hover:bg-black/5 hover:text-neutral-900 md:block"
-          >
-            Nomi Daily
-          </button>}
+          {onOpenDaily && (
+            <button type="button" onClick={onOpenDaily}>
+              Nomi Daily
+            </button>
+          )}
           {onNewChat && (
-            <button type="button" onClick={onNewChat} aria-label="New conversation" title="New conversation" className="grid h-8 w-8 place-items-center rounded-full text-lg text-neutral-400 hover:bg-black/5 hover:text-neutral-800">
+            <button type="button" className="plus" onClick={onNewChat} aria-label="New conversation" title="New conversation">
               +
             </button>
           )}
         </div>
 
         {showMemory && (
-          <div className="absolute right-4 top-[50px] z-30 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
+          <div className="pop">
             <div className="flex items-start justify-between border-b border-black/[0.06] px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-neutral-900">What Nomi remembers</p>
-                <p className="mt-0.5 text-[11px] leading-snug text-neutral-400">Shared across all three assistants. You’re always in control.</p>
+                <p className="text-[0.95em] font-semibold">What Nomi remembers</p>
+                <p className="mt-0.5 text-[0.75em] leading-snug text-[#8a8a8e]">Shared across all three bots. You’re always in control.</p>
               </div>
-              <button type="button" onClick={() => setShowMemory(false)} aria-label="Close memory" className="ml-3 text-lg leading-none text-neutral-400 hover:text-neutral-800">×</button>
+              <button type="button" onClick={() => setShowMemory(false)} aria-label="Close memory" className="ml-3 text-lg leading-none text-neutral-400 hover:text-neutral-800">
+                ×
+              </button>
             </div>
             <div className="max-h-[360px] overflow-y-auto p-2">
               {memories.length === 0 ? (
-                <div className="px-3 py-7 text-center">
-                  <p className="text-sm font-medium text-neutral-700">Nothing saved yet</p>
-                  <p className="mx-auto mt-1 max-w-[260px] text-xs leading-relaxed text-neutral-400">Nomi will remember useful goals, people, places, preferences, and constraints as you talk.</p>
-                </div>
+                <p className="px-3 py-6 text-center text-[0.8em] text-[#8a8a8e]">Nothing saved yet. Nomi remembers goals, people, places and preferences as you talk.</p>
               ) : (
-                <div className="space-y-1">
-                  {memories.map((memory) => (
-                    <div key={memory.id} className="group flex items-start gap-2 rounded-xl px-3 py-2.5 hover:bg-neutral-50">
-                      <span className="mt-0.5 rounded-full bg-neutral-100 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-neutral-500">{memory.kind}</span>
-                      <p className="min-w-0 flex-1 text-xs leading-relaxed text-neutral-700">{memory.text}</p>
-                      <button
-                        type="button"
-                        onClick={() => onForgetMemory(memory.id)}
-                        aria-label={`Forget ${memory.text}`}
-                        className="shrink-0 text-base leading-none text-neutral-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100 focus:opacity-100"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                memories.map((memory) => (
+                  <div key={memory.id} className="group flex items-start gap-2 rounded-xl px-3 py-2 hover:bg-neutral-50">
+                    <span className="mt-0.5 rounded-full bg-[#f2f2f7] px-2 py-0.5 text-[0.6em] font-semibold uppercase tracking-wide text-[#6d6a64]">{memory.kind}</span>
+                    <p className="min-w-0 flex-1 text-[0.8em] leading-relaxed">{memory.text}</p>
+                    <button
+                      type="button"
+                      onClick={() => onForgetMemory(memory.id)}
+                      aria-label={`Forget ${memory.text}`}
+                      className="shrink-0 text-neutral-300 opacity-0 transition hover:text-red-500 group-hover:opacity-100 focus:opacity-100"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -219,77 +199,54 @@ export function ChatThread({
       </header>
 
       {expanded && tasks.length > 0 && (
-        <div className="shrink-0 border-b border-black/5 bg-[#fafafa] px-5 py-3">
-          <div className="mx-auto max-w-[680px] space-y-2">
-            {tasks.map((task) => <TaskProgress key={task.id} task={task} />)}
-          </div>
+        <div className="tasks">
+          {tasks.map((task) => <TaskProgress key={task.id} task={task} />)}
         </div>
       )}
 
-      <div ref={scroller} className="flex-1 overflow-y-auto px-4 py-7 sm:px-8">
-        <div className="mx-auto flex min-h-full w-full max-w-[680px] flex-col">
-          <p className="mb-7 text-center text-[11px] font-medium text-neutral-400">Today · {new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</p>
-          {tasks[0] && <MilestoneRow task={tasks[0]} />}
-          <div className="space-y-2">
-            {groupMessages(messages).map((group) => {
-              if (group.kind === "cards") {
-                const live = group.items.some((m) => m.card?.source);
-                return (
-                  <div key={group.items[0].id} className="space-y-1.5">
-                    {group.items.filter((m) => m.text).map((m) => (
-                      <div key={`${m.id}-t`} className="flex justify-start">
-                        <div className="max-w-[78%] rounded-[18px] bg-[#e9e9eb] px-3.5 py-2 text-[14px] leading-[1.4] text-neutral-900">{m.text}</div>
-                      </div>
-                    ))}
-                    <div className={`grid gap-2.5 ${group.items.length > 1 ? "sm:grid-cols-2" : "max-w-[420px]"}`}>
-                      {group.items.map((m) => (
-                        <EventCard key={m.id} message={m} disabled={sending} done={Boolean(m.approval && approved.includes(m.approval.id))} onApprove={(id) => void send({ approve: id })} />
-                      ))}
-                    </div>
-                    {live && <p className="text-[11px] text-[#8a8a8e]">Found with Parallel Search on the live web</p>}
-                  </div>
-                );
-              }
-              const message = group.items[0];
-              const isUser = message.role === "user";
-              return (
-                <div key={message.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-                  <div className="max-w-[78%]">
-                    {message.text && (
-                      <div className={`rounded-[18px] px-3.5 py-2 text-[14px] leading-[1.4] ${isUser ? "bg-[#0a84ff] text-white" : "bg-[#e9e9eb] text-neutral-900"}`}>
-                        <p className="whitespace-pre-wrap">{message.text}</p>
-                      </div>
-                    )}
-                    {message.approval && (
-                      <button
-                        type="button"
-                        disabled={sending}
-                        onClick={() => void send({ approve: message.approval!.id })}
-                        className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#34c759] px-3.5 py-1.5 text-[12px] font-semibold text-white transition hover:brightness-95 disabled:opacity-50"
-                      >
-                        Approve · {message.approval.summary}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            {sending && (
-              <div className="flex justify-start">
-                <div className="flex items-center gap-1 rounded-[18px] rounded-bl-[5px] bg-[#eeeeee] px-4 py-3">
-                  {[0, 1, 2].map((dot) => (
-                    <span key={dot} className="h-1.5 w-1.5 animate-pulse rounded-full bg-neutral-400" style={{ animationDelay: `${dot * 140}ms` }} />
+      <div ref={scroller} className="chat">
+        <span className="stamp">Today · {stamp}</span>
+        {tasks[0] && <MilestoneRow task={tasks[0]} />}
+        {groupMessages(messages).map((group) => {
+          if (group.kind === "cards") {
+            const live = group.items.some((m) => m.card?.source);
+            return (
+              <div key={group.items[0].id} className="contents">
+                {group.items.filter((m) => m.text).map((m) => (
+                  <div key={`${m.id}-t`} className="bub">{m.text}</div>
+                ))}
+                <div className={`cards ${group.items.length > 1 ? "" : "one"}`}>
+                  {group.items.map((m, i) => (
+                    <EventCard key={m.id} index={i} message={m} disabled={sending} done={Boolean(m.approval && approved.includes(m.approval.id))} onApprove={(id) => void send({ approve: id })} />
                   ))}
                 </div>
+                {live && <span className="src">Found with Parallel Search on the live web</span>}
               </div>
-            )}
+            );
+          }
+          const message = group.items[0];
+          return (
+            <div key={message.id} className="contents">
+              {message.text && <div className={`bub ${message.role === "user" ? "me" : ""}`}>{message.text}</div>}
+              {message.approval && (
+                <button type="button" className="approve-inline" disabled={sending} onClick={() => void send({ approve: message.approval!.id })}>
+                  Approve · {message.approval.summary}
+                </button>
+              )}
+            </div>
+          );
+        })}
+        {sending && (
+          <div className="bub typing" aria-label="typing">
+            <i />
+            <i />
+            <i />
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="shrink-0 px-4 pb-4 sm:px-8 sm:pb-5">
+      <div className="composer">
         <form
-          className="mx-auto flex max-w-[680px] items-end gap-2 rounded-[22px] border border-black/10 bg-white p-1.5 pl-2 shadow-[0_4px_24px_rgba(0,0,0,0.08)] focus-within:border-black/20"
           onSubmit={(event) => {
             event.preventDefault();
             const text = input.trim();
@@ -298,7 +255,6 @@ export function ChatThread({
             void send({ message: text }, text);
           }}
         >
-          <button type="button" aria-label="Add attachment" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-xl text-neutral-400 hover:bg-black/5 hover:text-neutral-700">+</button>
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
@@ -309,21 +265,15 @@ export function ChatThread({
               }
             }}
             rows={1}
-            className="max-h-28 min-h-9 min-w-0 flex-1 resize-none bg-transparent py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
             placeholder={`Message ${bot.name}`}
           />
-          <button
-            type="submit"
-            disabled={!input.trim() || sending}
-            aria-label="Send message"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black text-base text-white transition hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-400"
-          >
+          <button type="submit" className="send" disabled={!input.trim() || sending} aria-label="Send message">
             ↑
           </button>
         </form>
-        <p className="mt-2 text-center text-[10px] text-neutral-400">Nomi asks before taking action on your behalf.</p>
+        <p>Nomi asks before taking action on your behalf.</p>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -343,11 +293,7 @@ function groupMessages(messages: ChatMessage[]): Group[] {
   return out;
 }
 
-const BANDS = [
-  "linear-gradient(135deg,#12343b,#2c7873 55%,#e1b382)",
-  "linear-gradient(135deg,#2d2b55,#6a4fb5 55%,#f08a5d)",
-  "linear-gradient(135deg,#3d6b4a,#9cc98a)",
-];
+const BANDS = ["b", "", "c"];
 
 function siteName(url?: string) {
   if (!url) return undefined;
@@ -360,35 +306,28 @@ function siteName(url?: string) {
   }
 }
 
-function EventCard({ message, disabled, done, onApprove }: { message: ChatMessage; disabled: boolean; done: boolean; onApprove: (id: string) => void }) {
+function EventCard({ message, index, disabled, done, onApprove }: { message: ChatMessage; index: number; disabled: boolean; done: boolean; onApprove: (id: string) => void }) {
   const card = message.card!;
   const tag = card.source ?? siteName(card.url) ?? card.eyebrow;
-  const band = BANDS[(card.title.length + (card.subtitle?.length ?? 0)) % BANDS.length];
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-[#e5e5ea] bg-white shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
-      <div className="relative h-16 bg-cover bg-center" style={{ backgroundImage: card.imageUrl ? `url(${card.imageUrl})` : band }}>
-        {tag && <span className="absolute bottom-1.5 left-2 rounded-full bg-black/40 px-2 py-0.5 text-[10px] font-semibold capitalize text-white">{tag}</span>}
+    <article className="ev">
+      <div className={`img ${BANDS[index % BANDS.length]}`} style={card.imageUrl ? { backgroundImage: `url(${card.imageUrl})` } : undefined}>
+        {tag && <em>{tag}</em>}
       </div>
-      <div className="flex flex-1 flex-col gap-0.5 px-3 pb-2 pt-2.5">
-        <p className="text-[14px] font-semibold leading-snug text-neutral-900">{card.title}</p>
-        {card.subtitle && <p className="line-clamp-2 text-[12px] text-[#6d6d72]">{card.subtitle}</p>}
-        {card.host && <p className="text-[12px] text-[#6d6d72]">Hosted by {card.host}</p>}
-        {card.why && <p className="mt-0.5 line-clamp-2 text-[12px] text-[#2f6b2b]">{card.why}</p>}
+      <div className="tx">
+        <b>{card.title}</b>
+        {card.subtitle && <small>{card.subtitle}</small>}
+        {card.host && <small>Hosted by {card.host}</small>}
+        {card.why && <small className="why">{card.why}</small>}
       </div>
-      <div className="flex flex-wrap items-center gap-1.5 px-3 pb-3">
+      <div className="acts">
         {message.approval && (
-          <button
-            type="button"
-            disabled={disabled || done}
-            onClick={() => onApprove(message.approval!.id)}
-            title={message.approval.summary}
-            className={`rounded-full px-3 py-1 text-[12px] font-semibold text-white transition hover:brightness-95 ${done ? "bg-neutral-900" : "bg-[#34c759] disabled:opacity-50"}`}
-          >
+          <button type="button" className={`ok ${done ? "done" : ""}`} disabled={disabled || done} onClick={() => onApprove(message.approval!.id)} title={message.approval.summary}>
             {done ? (message.approval.kind === "calendar_hold" ? "Added ✓" : "Done ✓") : "Approve"}
           </button>
         )}
         {card.url && (
-          <a href={card.url} target="_blank" rel="noreferrer" className="rounded-full bg-[#f2f2f7] px-3 py-1 text-[12px] text-neutral-900 transition hover:bg-[#e5e5ea]">
+          <a href={card.url} target="_blank" rel="noreferrer">
             {card.cta ?? "View more"}
           </a>
         )}
@@ -399,15 +338,15 @@ function EventCard({ message, disabled, done, onApprove }: { message: ChatMessag
 
 function MilestoneRow({ task }: { task: BotTask }) {
   return (
-    <div className="mb-4 flex items-start text-[10px] text-[#8a8a8e]" aria-label={task.title}>
+    <div className="ms" aria-label={task.title}>
       {task.milestones.map((m, i) => (
-        <div key={m.label} className="flex flex-1 items-start last:flex-none">
-          <span className="flex shrink-0 flex-col items-center gap-1">
-            <i className={`block h-3 w-3 rounded-full ${m.status === "done" ? "bg-[#34c759]" : m.status === "active" ? "animate-pulse bg-[#0a84ff]" : "bg-[#d1d1d6]"}`} />
-            <span className={m.status === "active" ? "font-medium text-[#0a84ff]" : ""}>{m.label}</span>
+        <Fragment key={m.label}>
+          <span className={m.status === "done" ? "d" : m.status === "active" ? "c" : ""}>
+            <i />
+            {m.label}
           </span>
-          {i < task.milestones.length - 1 && <hr className={`mx-1 mt-[5px] h-[2px] flex-1 border-0 ${m.status === "done" ? "bg-[#34c759]" : "bg-[#e5e5ea]"}`} />}
-        </div>
+          {i < task.milestones.length - 1 && <hr className={m.status === "done" ? "d" : ""} />}
+        </Fragment>
       ))}
     </div>
   );

@@ -83,7 +83,9 @@ function createMainWindow() {
     minHeight: 560,
     title: "Nomi Bots",
     show: false,
-    backgroundColor: "#faf8f5",
+    backgroundColor: "#ffffff",
+    // Like the demo walkthrough: no title bar, the traffic lights sit in the sidebar's top bar.
+    ...(process.platform === "darwin" ? { titleBarStyle: "hiddenInset" as const, trafficLightPosition: { x: 18, y: 19 } } : {}),
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true },
   });
   routeLinks(mainWindow);

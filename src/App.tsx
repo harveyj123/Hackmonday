@@ -10,8 +10,6 @@ export default function Home() {
   useEffect(() => window.nomi?.onHandoff(setHandoff), []);
 
   return (
-    <main className="p-4">
-      <BotsView handoff={handoff} onHandoffConsumed={() => setHandoff(null)} onOpenDaily={() => window.nomi?.openDaily()} />
-    </main>
+    <BotsView handoff={handoff} onHandoffConsumed={() => setHandoff(null)} onOpenDaily={() => window.nomi?.openDaily()} />
   );
 }
