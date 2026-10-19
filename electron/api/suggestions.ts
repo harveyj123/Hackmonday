@@ -110,7 +110,7 @@ export async function suggestionsFor(botId: BotId): Promise<Suggestion[]> {
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as SuggestionsRequest;
-  const ids = body.botId ? [body.botId] : BOTS.map((b) => b.id);
+  const ids = body.botId ? [body.botId] : (BOTS.map((b) => b.id) as BotId[]);
   const lists = await Promise.all(ids.map(suggestionsFor));
   // Interleave so each bot gets a turn at the top.
   const merged: Suggestion[] = [];

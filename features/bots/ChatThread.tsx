@@ -91,7 +91,7 @@ export function ChatThread({
       });
       if (!res.ok) throw new Error("The bot could not respond");
       const data = (await res.json()) as AgentResponse;
-      if (data.learnedMemories?.length) onMemoriesLearned(data.learnedMemories);
+      onMemoriesLearned(data.learnedMemories ?? []);
       for (const message of data.messages) {
         await new Promise((resolve) => setTimeout(resolve, 420));
         setMessages((current) => [...current, message]);

@@ -92,7 +92,7 @@ export function updateMemory(update: MemoryUpdate): SharedMemory {
   }
 
   for (const e of update.events ?? []) {
-    const event: MemoryEvent = { at: "at" in e && e.at ? e.at : now(), source: e.source, kind: e.kind, text: e.text, botId: e.botId };
+    const event: MemoryEvent = { at: (e as Partial<MemoryEvent>).at ?? now(), source: e.source, kind: e.kind, text: e.text, botId: e.botId };
     mem.events.unshift(event);
     if (event.kind === "booking" || event.kind === "plan-done") bumpGoal(mem.goals, event.botId, 0.1, event.text);
     if (event.kind === "plan-skipped") bumpGoal(mem.goals, event.botId, -0.05, event.text);
