@@ -7,6 +7,9 @@ import * as ics from "./ics";
 import * as context from "./context";
 import * as plans from "./plans";
 import * as transcribe from "./transcribe";
+import * as memory from "./memory";
+import * as triage from "./triage";
+import * as suggestions from "./suggestions";
 
 type Handler = (req: Request) => Promise<Response>;
 
@@ -19,6 +22,10 @@ const ROUTES: Record<string, Handler> = {
   "POST /api/plans": plans.POST,
   "POST /api/plans/nudge": plans.NUDGE_POST,
   "POST /api/transcribe": transcribe.POST,
+  "GET /api/memory": memory.GET,
+  "POST /api/memory": memory.POST,
+  "POST /api/route": triage.POST,
+  "POST /api/suggestions": suggestions.POST,
 };
 
 export async function handleApi(req: Request): Promise<Response> {

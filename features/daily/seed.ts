@@ -14,7 +14,7 @@ export const SEED_DAYS: StoryDay[] = [
     ],
     summary: "Your climbing night did double duty: a workout and a founder-ish conversation with Leo. The afternoon alone was the drag.",
     actionItems: [
-      { id: "a1", botId: "third-place", title: "Find a climbing gym with a social night", context: "Climbing with Leo was the highlight; wants climbing plus builder company.", fromSegmentId: "s3" },
+      { id: "a1", botId: "health-sports", title: "Find a climbing gym with a social night", context: "Climbing with Leo was the highlight; wants climbing plus builder company.", fromSegmentId: "s3" },
     ],
   },
   {
@@ -28,7 +28,7 @@ export const SEED_DAYS: StoryDay[] = [
     ],
     summary: "No one new, no climbing, and a late night. Fridays at home seem to slide; a plan with people in it would have rescued this one.",
     actionItems: [
-      { id: "a1", botId: "scene-scout", title: "Line up a Friday evening event", context: "Friday at home slid into a late night with no people.", fromSegmentId: "s2" },
+      { id: "a1", botId: "career-growth", title: "Line up a Friday evening event", context: "Friday at home slid into a late night with no people.", fromSegmentId: "s2" },
     ],
   },
   {
@@ -43,7 +43,7 @@ export const SEED_DAYS: StoryDay[] = [
     ],
     summary: "One coffee did more for your founder goal than a week of solo work. Getting out of the apartment helped your focus too.",
     actionItems: [
-      { id: "a1", botId: "scene-scout", title: "Find events Maya's founder circle goes to", context: "Met Maya (YC founder) at Sightglass, invited to a founder dinner.", fromSegmentId: "s1" },
+      { id: "a1", botId: "career-growth", title: "Find events Maya's founder circle goes to", context: "Met Maya (YC founder) at Sightglass, invited to a founder dinner.", fromSegmentId: "s1" },
     ],
   },
 ];

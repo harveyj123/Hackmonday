@@ -20,7 +20,7 @@ export const TODAY_STORE = "nomi.daily.today";
 const TODAY_LABEL = new Date(TODAY + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
 type Tab = "today" | "plans" | "days";
-const BOT_LABEL: Record<string, string> = { "scene-scout": "Scene Scout", "third-place": "Third Place" };
+const BOT_LABEL: Record<string, string> = { "career-growth": "Career & Growth", "health-sports": "Health & Sports", "social-hobbies": "Social & Hobbies" };
 const FIT = { 1: "border-emerald-500", 0: "border-amber-400", [-1]: "border-rose-500" } as const;
 const DOT = { calendar: "bg-red-500 rounded-sm", screentime: "bg-indigo-500 rounded-sm", reminder: "bg-orange-400 rounded-full" } as const;
 const SOURCE = { calendar: "Calendar", screentime: "Screen Time", reminder: "Reminders" } as const;

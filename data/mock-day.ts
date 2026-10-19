@@ -12,8 +12,8 @@ export const MOCK_DAY: DayEntry = {
   summary:
     "Your energy flipped the moment you were around builders. Mornings at home are dragging you; evenings in the right room are pushing you forward.",
   actionItems: [
-    { id: "a1", botId: "scene-scout", title: "Find more rooms with builders like Priya", context: "Loved the SoMa AI meetup and meeting Priya (voice agents).", fromSegmentId: "s3" },
-    { id: "a2", botId: "third-place", title: "Find a place to work around builders", context: "Solo mornings at home feel stuck and drain energy.", fromSegmentId: "s1" },
+    { id: "a1", botId: "career-growth", title: "Find more rooms with builders like Priya", context: "Loved the SoMa AI meetup and meeting Priya (voice agents).", fromSegmentId: "s3" },
+    { id: "a2", botId: "career-growth", title: "Find a place to work around builders", context: "Solo mornings at home feel stuck and drain energy.", fromSegmentId: "s1" },
   ],
 };
 

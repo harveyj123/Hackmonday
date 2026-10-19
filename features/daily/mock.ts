@@ -88,8 +88,8 @@ export function mockDay(date: string, text: string): StoryDay {
   const worst = segments.find((s) => s.goalFit === -1);
   const actionItems: ActionItem[] = [];
   if (best)
-    actionItems.push({ id: "a1", botId: "scene-scout", title: best.people[0] ? `Find more rooms with people like ${best.people[0]}` : `Find more moments like ${best.place.toLowerCase()}`, context: best.activity, fromSegmentId: best.id });
-  if (worst) actionItems.push({ id: "a2", botId: "third-place", title: "Find a better place for this part of the day", context: worst.activity, fromSegmentId: worst.id });
+    actionItems.push({ id: "a1", botId: "career-growth", title: best.people[0] ? `Find more rooms with people like ${best.people[0]}` : `Find more moments like ${best.place.toLowerCase()}`, context: best.activity, fromSegmentId: best.id });
+  if (worst) actionItems.push({ id: "a2", botId: "social-hobbies", title: "Find a better place for this part of the day", context: worst.activity, fromSegmentId: worst.id });
 
   const summary =
     best && worst
@@ -106,7 +106,7 @@ export function mockDay(date: string, text: string): StoryDay {
 // Make a model's JSON safe to render: fill defaults, clamp enums, give everything ids.
 export function normalizeDay(date: string, text: string, raw: Record<string, unknown>): StoryDay {
   const moods: Mood[] = ["great", "good", "meh", "low"];
-  const bots: BotId[] = ["scene-scout", "third-place"];
+  const bots: BotId[] = ["career-growth", "health-sports", "social-hobbies"];
   const segs = (Array.isArray(raw.segments) ? raw.segments : []) as Partial<DaySegment>[];
   const segments: DaySegment[] = segs.map((s, i) => {
     const fit = Number(s.goalFit);
@@ -126,7 +126,7 @@ export function normalizeDay(date: string, text: string, raw: Record<string, unk
   const items = (Array.isArray(raw.actionItems) ? raw.actionItems : []) as Partial<ActionItem>[];
   const actionItems: ActionItem[] = items.map((a, i) => ({
     id: String(a.id ?? `a${i + 1}`),
-    botId: bots.includes(a.botId as BotId) ? (a.botId as BotId) : "scene-scout",
+    botId: bots.includes(a.botId as BotId) ? (a.botId as BotId) : "career-growth",
     title: String(a.title ?? ""),
     context: String(a.context ?? ""),
     fromSegmentId: a.fromSegmentId ? String(a.fromSegmentId) : undefined,
@@ -173,11 +173,11 @@ export function mockAnalysis(days: StoryDay[], goals: Goal[]): PeriodAnalysis {
     insights.push({ emoji: "🧗", title: climbs >= 2 ? "Climbing goal on track" : "Climbing is behind", detail: `${climbs} climbing session${climbs === 1 ? "" : "s"} across ${sorted.length} days, against a goal of twice a week.`, tone: climbs >= 2 ? "up" : "flat" });
 
   const actionItems: ActionItem[] = [
-    { id: "p1", botId: "scene-scout", title: greenPeople[0] ? `Find two more rooms like the ones with ${greenPeople[0]}` : "Find two founder events this week", context: `Across ${sorted.length} days, green moments came from people: ${greenPeople.join(", ") || "none yet"}.` },
-    { id: "p2", botId: "third-place", title: "Replace solo apartment hours with a builder co-working spot", context: `${soloRed} red moments were solo, mostly at ${redPlaces[0] ?? "home"}.` },
+    { id: "p1", botId: "career-growth", title: greenPeople[0] ? `Find two more rooms like the ones with ${greenPeople[0]}` : "Find two founder events this week", context: `Across ${sorted.length} days, green moments came from people: ${greenPeople.join(", ") || "none yet"}.` },
+    { id: "p2", botId: "social-hobbies", title: "Replace solo apartment hours with a builder co-working spot", context: `${soloRed} red moments were solo, mostly at ${redPlaces[0] ?? "home"}.` },
   ];
   if (climbGoal && climbs < 2)
-    actionItems.push({ id: "p3", botId: "third-place", title: "Book two climbing nights with a social crowd", context: `Only ${climbs} climbing session(s) in this stretch; goal is twice a week.` });
+    actionItems.push({ id: "p3", botId: "health-sports", title: "Book two climbing nights with a social crowd", context: `Only ${climbs} climbing session(s) in this stretch; goal is twice a week.` });
 
   const ratio = score.up - score.down;
   return {
