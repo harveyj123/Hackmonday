@@ -1,0 +1,153 @@
+/* Sprout pet animations. Every class is prefixed sprout- so nothing leaks into the rest of the app. */
+.sprout {
+  display: block;
+  overflow: visible;
+}
+.sprout-body {
+  transform-box: view-box;
+  transform-origin: 60px 110px;
+}
+.sprout-shadow,
+.sprout-blink,
+.sprout-twinkle,
+.sprout-confetti,
+.sprout-bloom {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.sprout-leaves {
+  transform-box: view-box;
+  transform-origin: 60px 31px;
+}
+
+.sprout-blink {
+  animation: sprout-blink 4.6s infinite;
+}
+.sprout-neutral .sprout-body {
+  animation: sprout-breathe 3.4s ease-in-out infinite;
+}
+.sprout-happy .sprout-body {
+  animation: sprout-hop 1.5s ease-in-out infinite;
+}
+.sprout-happy .sprout-shadow {
+  animation: sprout-shadow-hop 1.5s ease-in-out infinite;
+}
+.sprout-worried .sprout-body {
+  animation: sprout-droop 4s ease-in-out infinite;
+}
+.sprout-listening .sprout-body {
+  animation: sprout-tilt 3s ease-in-out infinite;
+}
+.sprout-busy .sprout-body {
+  animation: sprout-jiggle 0.45s ease-in-out infinite;
+}
+.sprout-celebrating .sprout-body {
+  animation: sprout-jump 1s cubic-bezier(0.3, 0.7, 0.4, 1) infinite;
+}
+.sprout-celebrating .sprout-shadow {
+  animation: sprout-shadow-jump 1s cubic-bezier(0.3, 0.7, 0.4, 1) infinite;
+}
+.sprout-happy .sprout-leaves,
+.sprout-busy .sprout-leaves {
+  animation: sprout-wiggle 0.9s ease-in-out infinite alternate;
+}
+.sprout-bloom {
+  animation: sprout-bloom 1s ease-in-out infinite alternate;
+}
+.sprout-twinkle {
+  animation: sprout-twinkle 1.8s ease-in-out infinite;
+}
+.sprout-twinkle + .sprout-twinkle {
+  animation-delay: 0.9s;
+}
+.sprout-wave {
+  animation: sprout-wave 1.6s ease-in-out infinite;
+}
+.sprout-wave-2 {
+  animation-delay: 0.3s;
+}
+.sprout-dot {
+  animation: sprout-dot 1.2s ease-in-out infinite;
+}
+.sprout-drop {
+  animation: sprout-drip 2.4s ease-in infinite;
+}
+.sprout-confetti {
+  opacity: 0;
+  animation: sprout-fall 1.8s linear infinite;
+}
+
+@keyframes sprout-blink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  95.5% { transform: scaleY(0.1); }
+}
+@keyframes sprout-breathe {
+  50% { transform: scale(0.985, 1.03); }
+}
+@keyframes sprout-hop {
+  0%, 100% { transform: none; }
+  15% { transform: scale(1.06, 0.94); }
+  45% { transform: translateY(-7px) scale(0.97, 1.04); }
+  75% { transform: scale(1.03, 0.97); }
+}
+@keyframes sprout-shadow-hop {
+  45% { transform: scale(0.8); }
+}
+@keyframes sprout-droop {
+  0%, 100% { transform: scale(1.05, 0.93) rotate(-1.5deg); }
+  50% { transform: scale(1.05, 0.93) rotate(1.5deg); }
+}
+@keyframes sprout-tilt {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(-3deg) translateY(-1.5px); }
+}
+@keyframes sprout-jiggle {
+  0%, 100% { transform: translateX(-1.2px); }
+  50% { transform: translate(1.2px, -1px); }
+}
+@keyframes sprout-jump {
+  0%, 100% { transform: scale(1.05, 0.95); }
+  40% { transform: translateY(-14px) scale(0.95, 1.07) rotate(-4deg); }
+  62% { transform: translateY(-12px) rotate(4deg); }
+}
+@keyframes sprout-shadow-jump {
+  40%, 62% { transform: scale(0.65); }
+}
+@keyframes sprout-wiggle {
+  from { transform: rotate(-4deg); }
+  to { transform: rotate(4deg); }
+}
+@keyframes sprout-bloom {
+  from { transform: scale(0.85) rotate(0); }
+  to { transform: scale(1.1) rotate(20deg); }
+}
+@keyframes sprout-twinkle {
+  0%, 100% { transform: scale(0.4); opacity: 0.3; }
+  50% { transform: scale(1); opacity: 1; }
+}
+@keyframes sprout-wave {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 1; }
+}
+@keyframes sprout-dot {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-3px); }
+}
+@keyframes sprout-drip {
+  0%, 40% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(10px); opacity: 0; }
+}
+@keyframes sprout-fall {
+  0% { transform: translateY(-6px) rotate(0); opacity: 0; }
+  10%, 85% { opacity: 1; }
+  100% { transform: translateY(64px) rotate(300deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sprout * {
+    animation: none !important;
+  }
+  .sprout-confetti {
+    opacity: 1;
+  }
+}
