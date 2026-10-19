@@ -69,7 +69,7 @@ Estimates are rough. **Cut line:** D0–D5 + D7, then B0–B4. Everything below 
   - Acceptance: `window.nomi.browser` exposes `prepare`, `confirm`, `cancel`, `signIn` and `onEvent`. It's absent when the bridge doesn't load. Spec success criterion 8.
   - Verify: in the app's devtools, run `await window.nomi.browser.prepare(mockJob)` in mock mode and watch the events stream.
   - Files: the shared preload bridge, the port's main entry (CDP switch and handler registration)
-- [ ] **B4: Luma recipe** (~45 min) → **Checkpoint C4**
+- [ ] **B4: Luma recipe** (~45 min) → **Checkpoint C4** (fixture runs pass Oct 19: review, local submit → pending_approval, registered, signed out, password, payment. Run with `npx electron main/browser/try.ts --url=… --recipe=luma`; Electron drops a URL followed by `--flag value`, so use `=`. **Left:** the live run on the team Luma event, which needs P4 and Joey typing SUBMIT)
   - Acceptance: detects already-registered and signed-out states, clicks Register or Request to join, fills name, email and the custom questions (canned answers until B5), stops at review with a screenshot, and `submit` reads the confirmation. Spec success criteria 1–4.
   - Verify: `npm run browser:try -- --url file://…/luma-like.html` first, then on the team Luma event: signed out → `needs_login`; signed in → review → Submit → pending in the host view; run again → `already_registered`.
   - Files: `main/browser/recipes/luma.ts`, `main/browser/try.ts`, `main/browser/fixtures/luma-like.html`, `profile.example.json`, `.gitignore` (`profile.local.json`)

@@ -10,3 +10,5 @@ data/cache/
 
 # B0 spike output
 spikes/out.png
+spikes/try-review.png
+profile.local.json

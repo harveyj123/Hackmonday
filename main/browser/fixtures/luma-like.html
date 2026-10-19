@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI Founders Night (fixture) · Luma</title>
   <!-- Local fixture that mimics a Luma request-to-join flow for recipe tests. No network, no scripts from elsewhere.
-       States: default (signed in, not registered), ?registered (already going), ?signedout (needs login). -->
+       States: default (signed in, not registered), ?registered (already going), ?signedout (needs login),
+       ?password and ?payment (the form asks for a password or a card number). -->
   <style>
     body { font: 16px/1.5 system-ui, sans-serif; margin: 0; background: #faf7f2; color: #1d1b18; }
     main { max-width: 560px; margin: 40px auto; padding: 0 16px; }
@@ -58,6 +59,11 @@
     const hide = (id) => document.getElementById(id).hidden = true;
     if (q.has("signedout")) { hide("cta"); show("signedout"); }
     if (q.has("registered")) { hide("cta"); show("registered"); }
+    // Guard checks: forms that ask for a password or card details must end as needs_manual.
+    const form = document.getElementById("form");
+    const extra = (html) => form.querySelector("button").insertAdjacentHTML("beforebegin", html);
+    if (q.has("password")) extra('<label for="pw">Password</label><input id="pw" name="pw" type="password">');
+    if (q.has("payment")) extra('<label for="cc">Card number</label><input id="cc" name="cc" autocomplete="cc-number">');
     document.getElementById("open-form").addEventListener("click", () => { hide("cta"); show("form"); });
     document.getElementById("form").addEventListener("submit", (e) => { e.preventDefault(); hide("form"); show("pending"); });
   </script>

@@ -4,12 +4,16 @@
 import { app } from "electron";
 import { SIGN_IN_URLS, type SignInSite } from "../main/browser/policy.ts";
 import { flushLogins, nomiWindow, signIn } from "../main/browser/window.ts";
+import { join } from "node:path";
 
 const site = process.argv.at(-1) as SignInSite;
 if (!(site in SIGN_IN_URLS)) {
   console.error(`usage: npx electron spikes/signin.ts <${Object.keys(SIGN_IN_URLS).join("|")}>`);
   process.exit(2);
 }
+
+// Same folder the app and try.ts use, so this login carries over.
+app.setPath("userData", join(app.getPath("appData"), "nomi"));
 
 app.whenReady().then(async () => {
   await signIn(site);
