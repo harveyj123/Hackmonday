@@ -52,11 +52,17 @@ function headlineFor(segs: DaySegment[]) {
   return "An Ordinary Day, Carefully Noted";
 }
 
+// "I want to try Sightglass Saturday" is a plan for later, not part of today's story (see plans.ts).
+const FUTURE = /\b(want to|wanna|gonna|going to|plan to|hoping to)\b/i;
+
 export function mockDay(date: string, text: string): StoryDay {
-  const parts = sentences(text);
+  const all = sentences(text);
+  const parts = all.filter((s) => !FUTURE.test(s)).length ? all.filter((s) => !FUTURE.test(s)) : all;
   const segments: DaySegment[] = parts.map((s, i) => {
     const place = PLACES.find(([re]) => re.test(s));
-    const people = [...new Set((s.match(/\b[A-Z][a-z]+\b/g) ?? []).filter((w) => !NOT_NAMES.has(w) && !(s.startsWith(w) && /(ed|ing|s)$/.test(w))))].slice(0, 3);
+    // A person is a capitalized word right after "met", "with" or "and", or right before "who".
+    const named = [...s.matchAll(/\b(?:met|with|and)\s+([A-Z][a-z]+)\b|\b([A-Z][a-z]+),?\s+who\b/g)].map((m) => m[1] ?? m[2]);
+    const people = [...new Set(named.filter((w) => !NOT_NAMES.has(w)))].slice(0, 3);
     const up = UP.test(s) || (GOALY.test(s) && !DOWN.test(s));
     const down = DOWN.test(s);
     const goalFit: GoalFit = up && !down ? 1 : down ? -1 : 0;

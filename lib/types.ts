@@ -40,7 +40,7 @@ export type BotId = "career-growth" | "health-sports" | "social-hobbies";
 export type ActionItem = {
   id: string;
   botId: BotId;
-  title: string; // "Find more rooms with builders like Priya"
+  title: string; // "Find more rooms with builders like Kevin"
   context: string; // what the bot should know from the day
   fromSegmentId?: string;
 };
@@ -102,7 +102,8 @@ export type NomiMemory = MemoryCandidate & {
 };
 
 // POST /api/daily
-export type DailyRequest = { date: string; text: string; goals: Goal[] };
+// context: lines Nomi read from the Mac for that day ("Calendar 6:00 PM: AI Founders Meetup").
+export type DailyRequest = { date: string; text: string; goals: Goal[]; context?: string[] };
 export type DailyResponse = DayEntry;
 
 // POST /api/agent

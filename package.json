@@ -8,7 +8,8 @@
     "build:main": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --format=cjs --external:electron --outdir=dist-electron --log-level=warning",
     "start": "electron .",
     "desktop": "npm run build && electron .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "voice:setup": "bash scripts/setup-voice.sh"
   },
   "dependencies": {
     "react": "^19.1.0",
