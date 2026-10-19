@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const text = body.text?.trim() ?? "";
 
   const prompt = `Goals: ${body.goals.map((g) => `[${g.area}] ${g.text}`).join("; ")}
-Day: ${text}
+${body.context?.length ? `From their Mac today (use it to fill in times and places, but the entry wins): ${body.context.join("; ")}\n` : ""}Day: ${text}
 Return JSON matching: {headline, segments: [{id, time: "HH:MM", place, people: string[], activity, conversation?, mood: "great"|"good"|"meh"|"low", emoji, goalFit: -1|0|1, why}], summary, actionItems: [{id, botId: "scene-scout"|"third-place", title, context, fromSegmentId}]}`;
 
   try {

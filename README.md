@@ -2,7 +2,7 @@
 
 Nomi is an open-source personal agent that reads your day, sees which people, places and communities push you toward your goals, and then goes out on the live web and into your inbox to rebuild that environment for you.
 
-- **Nomi Daily**: tell the Nomi pet about your day and get a magazine-style storyboard with green, amber and red goal frames.
+- **Nomi Daily** lives in Sprout, the desktop pet. Click it to check in with your Mac's calendar as context, get a magazine-style storyboard with green, amber and red goal frames, and save plans ("I want to try Sightglass Saturday") that Sprout reminds you about on the day.
 - **Nomi Bots**: friends that act. Parallel finds events, people and spaces, an open-source model decides, and after you approve it holds the time in Apple Calendar. Composio host emails come next.
 
 Built with [Cline](https://cline.bot), [Parallel](https://docs.parallel.ai) and an open-source model (Composio next), for the Cline x Composio x Parallel Open Source AI Week hackathon.
@@ -15,17 +15,22 @@ cp .env.example .env.local   # optional: without keys everything runs on mock da
 npm run desktop   # or `npm run dev` to rebuild on save
 ```
 
-Nomi is a desktop app built on Electron. Sprout lives in the corner of your screen: drag it anywhere, click it to check in.
+Nomi is a desktop app built on Electron. Sprout lives in the corner of your screen: drag it anywhere, click it to open Nomi Daily. The main window is Nomi Bots, opened from Sprout's panel, the tray or the dock.
+
+- Check-in context comes from a demo feed by default so the demo is the same every run. Set `NOMI_MAC_CONTEXT=1` to read today's real Apple Calendar events instead (macOS asks for Calendar access once).
+- Demo shortcut: ⌘⇧N (or the tray's "Demo: nudge the next plan") makes Sprout pop the reminder for your next plan right away.
 
 ## Layout
 
 ```
 electron/main.ts        Electron main process: windows, tray, serves /api/* on app://nomi
-electron/api/daily.ts   day text -> DayEntry (open model)
+electron/api/daily.ts   day text + Mac context -> DayEntry (open model)
+electron/api/plans.ts   plans pulled from a check-in, and Sprout's nudge on the day
+electron/api/context.ts the day's Mac context (demo feed or Apple Calendar)
 electron/api/agent.ts   one bot turn (Parallel + open model + calendar hold)
-src/App.tsx             renderer shell + Daily/Bots toggle + hand-off
-src/PetWindow.tsx       Sprout's always-on-top desktop window
-features/daily          timeline, storyboard, pet
+src/App.tsx             main window: Nomi Bots, receives storyboard hand-offs
+src/PetWindow.tsx       Sprout's always-on-top window: the pet, the Daily panel, plan nudges
+features/daily          Daily panel (Today, Plans, Days), storyboard, Sprout, plans
 features/bots           bot grid, iMessage-style chat, milestone bars
 lib/types.ts            shared contracts
 lib/llm.ts              OpenAI-compatible client for the open model

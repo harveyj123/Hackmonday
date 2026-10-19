@@ -86,7 +86,8 @@ export type BotTask = {
 };
 
 // POST /api/daily
-export type DailyRequest = { date: string; text: string; goals: Goal[] };
+// context: lines Nomi read from the Mac for that day ("Calendar 6:00 PM: AI Founders Meetup").
+export type DailyRequest = { date: string; text: string; goals: Goal[]; context?: string[] };
 export type DailyResponse = DayEntry;
 
 // POST /api/agent

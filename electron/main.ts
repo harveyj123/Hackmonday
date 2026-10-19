@@ -1,6 +1,7 @@
 // Nomi desktop: an Electron main process that serves the React renderer on app://nomi, answers the
 // renderer's /api/* calls itself (LLM, Parallel, calendar), and keeps Sprout on the desktop.
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, net, protocol, screen, shell, Tray } from "electron";
+// Sprout's window is Nomi Daily; the main window is Nomi Bots.
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, net, protocol, screen, shell, Tray } from "electron";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -66,14 +67,14 @@ function createMainWindow() {
     height: 820,
     minWidth: 720,
     minHeight: 560,
-    title: "Nomi",
+    title: "Nomi Bots",
     show: false,
     backgroundColor: "#faf8f5",
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true },
   });
   routeLinks(mainWindow);
+  // Sprout is the way in, so the Bots window stays hidden until something opens it.
   mainWindow.loadURL(`${ORIGIN}/index.html`);
-  mainWindow.once("ready-to-show", () => mainWindow?.show());
   // Closing the main window just hides it; Sprout keeps living on the desktop.
   mainWindow.on("close", (e) => {
     if (quitting) return;
@@ -82,9 +83,13 @@ function createMainWindow() {
   });
 }
 
+// Sprout's window grows for the Daily panel and the plan nudge, keeping the pet's corner where it is.
+const PET_SIZES = { pet: { width: 220, height: 220 }, panel: { width: 560, height: 740 }, nudge: { width: 500, height: 380 } };
+type PetView = keyof typeof PET_SIZES;
+
 function createPetWindow() {
   const { workArea } = screen.getPrimaryDisplay();
-  const size = { width: 220, height: 220 };
+  const size = PET_SIZES.pet;
   petWindow = new BrowserWindow({
     ...size,
     x: workArea.x + workArea.width - size.width - 16,
@@ -102,12 +107,42 @@ function createPetWindow() {
   petWindow.loadURL(`${ORIGIN}/index.html#pet`);
 }
 
-// Show the existing window and switch to Daily in-app, so an unsaved check-in survives.
+function setPetView(view: PetView) {
+  if (!petWindow) return;
+  const b = petWindow.getBounds();
+  const { workArea } = screen.getDisplayMatching(b);
+  const width = Math.min(PET_SIZES[view].width, workArea.width);
+  const height = Math.min(PET_SIZES[view].height, workArea.height);
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(v, hi));
+  const x = clamp(b.x + b.width - width, workArea.x, workArea.x + workArea.width - width);
+  const y = clamp(b.y + b.height - height, workArea.y, workArea.y + workArea.height - height);
+  petWindow.setResizable(true);
+  petWindow.setBounds({ x, y, width, height });
+  petWindow.setResizable(false);
+  if (view === "pet") return;
+  petWindow.show();
+  // The panel takes typing, so it needs focus; a nudge just appears.
+  if (view === "panel") petWindow.focus();
+}
+
+// Daily lives in Sprout: open its panel.
 function openDaily() {
+  petWindow?.show();
+  petWindow?.webContents.send("nomi:pet", "open-daily");
+}
+
+// Bots is the main window. A storyboard hand-off opens its bot directly.
+function openBots(item?: unknown) {
   if (!mainWindow) createMainWindow();
   mainWindow!.show();
   mainWindow!.focus();
-  mainWindow!.webContents.send("nomi:show-daily");
+  if (item) mainWindow!.webContents.send("nomi:handoff", item);
+}
+
+// Demo: jump to the next plan's day so Sprout's nudge fires on cue.
+function demoNudge() {
+  petWindow?.show();
+  petWindow?.webContents.send("nomi:pet", "demo-nudge");
 }
 
 function createTray() {
@@ -116,7 +151,9 @@ function createTray() {
   tray.setToolTip("Nomi");
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: "Open Daily check-in", click: openDaily },
+      { label: "Open Nomi Daily", click: openDaily },
+      { label: "Open Nomi Bots", click: () => openBots() },
+      { label: "Demo: nudge the next plan (⌘⇧N)", click: demoNudge },
       { label: "Show / hide Sprout", click: () => (petWindow?.isVisible() ? petWindow.hide() : petWindow?.show()) },
       { type: "separator" },
       { label: "Quit Nomi", click: () => app.quit() },
@@ -124,7 +161,8 @@ function createTray() {
   );
 }
 
-ipcMain.on("pet:open-daily", openDaily);
+ipcMain.on("pet:view", (_e, view: PetView) => PET_SIZES[view] && setPetView(view));
+ipcMain.on("nomi:open-bots", (_e, item: unknown) => openBots(item ?? undefined));
 ipcMain.on("pet:move", (_e, dx: number, dy: number) => {
   if (!petWindow) return;
   const [x, y] = petWindow.getPosition();
@@ -136,12 +174,14 @@ app.whenReady().then(() => {
   createMainWindow();
   createPetWindow();
   createTray();
-  app.on("activate", openDaily);
+  globalShortcut.register("CommandOrControl+Shift+N", demoNudge);
+  app.on("activate", () => openBots());
 });
 
 app.on("before-quit", () => {
   quitting = true;
 });
+app.on("will-quit", () => globalShortcut.unregisterAll());
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });

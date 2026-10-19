@@ -4,6 +4,8 @@ import * as agent from "./agent";
 import * as daily from "./daily";
 import * as analyze from "./analyze";
 import * as ics from "./ics";
+import * as context from "./context";
+import * as plans from "./plans";
 
 type Handler = (req: Request) => Promise<Response>;
 
@@ -12,6 +14,9 @@ const ROUTES: Record<string, Handler> = {
   "POST /api/daily": daily.POST,
   "POST /api/daily/analyze": analyze.POST,
   "GET /api/ics": ics.GET,
+  "GET /api/context": context.GET,
+  "POST /api/plans": plans.POST,
+  "POST /api/plans/nudge": plans.NUDGE_POST,
 };
 
 export async function handleApi(req: Request): Promise<Response> {
