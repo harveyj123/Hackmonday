@@ -51,6 +51,15 @@ test("detectBlocker finds ID and phone verification asks", () => {
   assert.equal(detectBlocker("<p>Enter the verification code we sent to your phone</p><input>"), "phone_verification");
 });
 
+test("detectBlocker ignores code inside scripts and styles, but still sees a CAPTCHA script tag", () => {
+  const html = `<form><label>Name</label><input name="name"></form>
+    <script>const tpl = '<input type="password">'; const card = "card number";</script>
+    <style>.cvc { color: red }</style>
+    <!-- this form never asks for a password or a card number -->`;
+  assert.equal(detectBlocker(html), null);
+  assert.equal(detectBlocker('<script src="https://www.google.com/recaptcha/api.js"></script>'), "captcha");
+});
+
 test("detectBlocker passes an ordinary registration form", () => {
   const html = `<form><label>Name</label><input name="name"><label>Email</label><input type="email" name="email">
     <label>What are you building?</label><textarea></textarea><button>Request to join</button></form>`;

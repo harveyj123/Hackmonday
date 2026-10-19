@@ -22,7 +22,7 @@ export type Blocker = "password" | "payment" | "id" | "phone_verification" | "ca
 
 // Any match stops the job; the first match only decides which reason the user sees.
 const BLOCKERS: [Blocker, RegExp][] = [
-  ["captcha", /g-recaptcha|h-captcha|cf-turnstile|\bcaptcha\b/i],
+  ["captcha", /recaptcha|hcaptcha|h-captcha|cf-turnstile|challenges\.cloudflare\.com|\bcaptcha\b/i],
   ["password", /<input[^>]*type\s*=\s*["']?password/i],
   ["payment", /autocomplete\s*=\s*["']?cc-|card\s*number|cardnumber|\bcvc\b|\bcvv\b|expiry date|js\.stripe\.com|checkout\.stripe\.com|paypal\.com\/sdk/i],
   ["id", /passport|driver'?s licen[cs]e|social security|\bssn\b|national id/i],
@@ -30,8 +30,11 @@ const BLOCKERS: [Blocker, RegExp][] = [
 ];
 
 // Nomi never types passwords, payment or ID details and never solves CAPTCHAs: any of these hands back.
+// Comments and script/style bodies aren't form fields: drop them, but keep the tags so a
+// <script src=".../recaptcha/api.js"> still counts.
 export function detectBlocker(html: string): Blocker | null {
-  for (const [kind, re] of BLOCKERS) if (re.test(html)) return kind;
+  const page = html.replace(/<!--[\s\S]*?-->/g, "").replace(/(<(script|style)\b[^>]*>)[\s\S]*?<\/\2>/gi, "$1");
+  for (const [kind, re] of BLOCKERS) if (re.test(page)) return kind;
   return null;
 }
 
