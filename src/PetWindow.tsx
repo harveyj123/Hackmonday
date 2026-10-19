@@ -45,6 +45,7 @@ export function PetWindow() {
   const [nudging, setNudging] = useState<Plan | null>(null);
   const [events, setEvents] = useState<HealthEvent[]>(loadEvents);
   const [reaction, setReaction] = useState<SproutReaction>(null);
+  const [hop, setHop] = useState(0);
   const [say, setSay] = useState<{ text: string; delta: number } | null>(null);
   const reactTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [suggestion, setSuggestion] = useState<BotSuggestion | null>(null);
@@ -229,7 +230,7 @@ export function PetWindow() {
       tabIndex={0}
       aria-label={view === "panel" ? "Close Nomi Daily (drag to move)" : "Open Nomi Daily (drag to move)"}
       title="Click for Nomi Daily, drag to move, right-click for demo controls"
-      className="flex-none cursor-grab active:cursor-grabbing"
+      className={`relative flex-none cursor-grab active:cursor-grabbing ${hop ? "nd-hop" : ""}`}
       onContextMenu={(e) => {
         e.preventDefault();
         window.nomi?.showPetMenu?.();
@@ -255,6 +256,7 @@ export function PetWindow() {
         const d = drag.current;
         drag.current = null;
         if (!d || d.moved >= 5) return;
+        setHop((n) => n + 1);
         if (view === "panel") show("pet");
         else {
           if (view === "nudge") setTab("plans");
@@ -262,7 +264,10 @@ export function PetWindow() {
         }
       }}
     >
-      <Sprout mood={mood} size={110} health={health} reaction={reaction} />
+      <div key={hop} className="contents">
+        <Sprout mood={mood} size={110} health={health} reaction={reaction} />
+        {hop > 0 && <span className="nd-ping" />}
+      </div>
     </div>
   );
 

@@ -35,6 +35,35 @@
 }
 .nd-float.nd-paper {
   background: var(--nd-paper);
+  /* The panel grows out of Sprout, like the walkthrough. */
+  animation: nd-grow-open 0.38s cubic-bezier(0.2, 0.9, 0.25, 1.12);
+  transform-origin: 104% 100%;
+}
+@keyframes nd-grow-open {
+  from { opacity: 0; transform: scale(0.15); }
+  to { opacity: 1; transform: none; }
+}
+/* A click on Sprout: a squash-and-hop plus a white ring. */
+.nd-hop .sprout {
+  animation: nd-hop 0.45s ease-out;
+}
+@keyframes nd-hop {
+  0% { transform: translateY(0) scale(1, 1); }
+  30% { transform: translateY(0) scale(1.1, 0.88); }
+  60% { transform: translateY(-18%) scale(0.94, 1.06); }
+  100% { transform: translateY(0); }
+}
+.nd-ping {
+  position: absolute;
+  inset: 10% 5% 0;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  animation: nd-ping 0.6s ease-out forwards;
+}
+@keyframes nd-ping {
+  from { transform: scale(0.6); opacity: 0.9; }
+  to { transform: scale(1.5); opacity: 0; }
 }
 .nd-pill {
   border-radius: 999px;
@@ -112,7 +141,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .nd-wave i,
-  .nd-float {
+  .nd-float,
+  .nd-hop .sprout,
+  .nd-ping {
     animation: none !important;
   }
 }
