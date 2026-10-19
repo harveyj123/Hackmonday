@@ -22,6 +22,7 @@ export async function chat(messages: Msg[], opts: { json?: boolean } = {}): Prom
     }),
   });
   if (!res.ok) throw new Error(`LLM ${res.status}: ${await res.text()}`);
-  const data = await res.json();
+  const json = await res.json();
+  const data = json.data ?? json; // the Cline API wraps the OpenAI body in { data }
   return data.choices?.[0]?.message?.content ?? null;
 }
