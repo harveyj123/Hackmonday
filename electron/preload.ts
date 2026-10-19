@@ -11,6 +11,7 @@ function on<T>(channel: string, fn: (arg: T) => void) {
 contextBridge.exposeInMainWorld("nomi", {
   movePet: (dx: number, dy: number) => ipcRenderer.send("pet:move", dx, dy),
   setPetView: (view: string) => ipcRenderer.send("pet:view", view),
+  setPetHit: (hit: boolean) => ipcRenderer.send("pet:hit", hit),
   openBots: (item?: unknown) => ipcRenderer.send("nomi:open-bots", item ?? null),
   onPetCommand: (fn: (cmd: string) => void) => on("nomi:pet", fn),
   onHandoff: (fn: (item: unknown) => void) => on("nomi:handoff", fn),

@@ -64,6 +64,13 @@ export function PetWindow() {
       if (e.key === PLANS_KEY) setPlansState(loadPlans());
     };
     window.addEventListener("storage", onStorage);
+    // Click-through: only elements marked data-hit take the mouse; the rest of the window passes it on.
+    let hit = false;
+    const onMove = (e: MouseEvent) => {
+      const next = Boolean(drag.current) || Boolean((e.target as Element | null)?.closest?.("[data-hit]"));
+      if (next !== hit) window.nomi?.setPetHit((hit = next));
+    };
+    window.addEventListener("mousemove", onMove);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && show("pet");
     window.addEventListener("keydown", onKey);
     const off = window.nomi?.onPetCommand((cmd) => {
@@ -81,6 +88,7 @@ export function PetWindow() {
     });
     return () => {
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener("mousemove", onMove);
       window.removeEventListener("keydown", onKey);
       off?.();
     };
@@ -108,6 +116,7 @@ export function PetWindow() {
   const sprout = (
     <div
       role="button"
+      data-hit
       tabIndex={0}
       aria-label={view === "panel" ? "Close Nomi Daily (drag to move)" : "Open Nomi Daily (drag to move)"}
       title="Click for Nomi Daily, drag to move"
@@ -146,7 +155,7 @@ export function PetWindow() {
   if (view === "pet") {
     return (
       <div className="flex h-screen select-none flex-col items-center justify-end pb-2">
-        <p className="mb-1 max-w-44 rounded-2xl border-2 border-stone-800 bg-white px-3 py-1.5 text-center text-xs font-medium shadow-[3px_3px_0_#292524]">
+        <p data-hit className="mb-1 max-w-44 rounded-2xl border-2 border-stone-800 bg-white px-3 py-1.5 text-center text-xs font-medium shadow-[3px_3px_0_#292524]">
           {SPROUT_LINES[mood]}
         </p>
         {sprout}

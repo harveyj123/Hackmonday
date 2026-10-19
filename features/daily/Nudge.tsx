@@ -30,6 +30,7 @@ export function Nudge({ plan, onGo, onTomorrow, onDismiss }: { plan: Plan; onGo:
   return (
     <div
       role="dialog"
+      data-hit
       aria-label={`Reminder: ${plan.title}`}
       className="w-full rounded-[20px] rounded-br-md border-2 border-stone-900 bg-white p-4 shadow-[4px_4px_0_#1c1917] animate-[popIn_.28s_cubic-bezier(.2,.9,.25,1.15)] [transform-origin:100%_100%]"
     >

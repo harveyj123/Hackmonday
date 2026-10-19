@@ -86,6 +86,7 @@ function createMainWindow() {
 // Sprout's window grows for the Daily panel and the plan nudge, keeping the pet's corner where it is.
 const PET_SIZES = { pet: { width: 220, height: 220 }, panel: { width: 560, height: 740 }, nudge: { width: 500, height: 380 } };
 type PetView = keyof typeof PET_SIZES;
+const CLICK_THROUGH = process.platform !== "linux";
 
 function createPetWindow() {
   const { workArea } = screen.getPrimaryDisplay();
@@ -102,6 +103,10 @@ function createPetWindow() {
     hasShadow: false,
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true },
   });
+  // Empty, transparent parts of the window let clicks through to the desktop; the renderer turns
+  // clicks back on while the cursor is over Sprout, the panel or a nudge (see "pet:hit"). Linux can't
+  // forward mouse moves to an ignoring window, so there the whole window keeps taking clicks.
+  if (CLICK_THROUGH) petWindow.setIgnoreMouseEvents(true, { forward: true });
   petWindow.setAlwaysOnTop(true, "floating");
   petWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   petWindow.loadURL(`${ORIGIN}/index.html#pet`);
@@ -153,7 +158,7 @@ function createTray() {
     Menu.buildFromTemplate([
       { label: "Open Nomi Daily", click: openDaily },
       { label: "Open Nomi Bots", click: () => openBots() },
-      { label: "Demo: nudge the next plan (⌘⇧N)", click: demoNudge },
+      { label: "Demo: nudge the next plan (⌘⌥⇧N)", click: demoNudge },
       { label: "Show / hide Sprout", click: () => (petWindow?.isVisible() ? petWindow.hide() : petWindow?.show()) },
       { type: "separator" },
       { label: "Quit Nomi", click: () => app.quit() },
@@ -162,6 +167,7 @@ function createTray() {
 }
 
 ipcMain.on("pet:view", (_e, view: PetView) => PET_SIZES[view] && setPetView(view));
+ipcMain.on("pet:hit", (_e, hit: boolean) => CLICK_THROUGH && petWindow?.setIgnoreMouseEvents(!hit, { forward: true }));
 ipcMain.on("nomi:open-bots", (_e, item: unknown) => openBots(item ?? undefined));
 ipcMain.on("pet:move", (_e, dx: number, dy: number) => {
   if (!petWindow) return;
@@ -174,7 +180,8 @@ app.whenReady().then(() => {
   createMainWindow();
   createPetWindow();
   createTray();
-  globalShortcut.register("CommandOrControl+Shift+N", demoNudge);
+  // Global so it works on stage with any app in front; Option keeps it off common app shortcuts like ⌘⇧N.
+  globalShortcut.register("CommandOrControl+Alt+Shift+N", demoNudge);
   app.on("activate", () => openBots());
 });
 

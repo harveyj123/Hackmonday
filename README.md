@@ -18,7 +18,7 @@ npm run desktop   # or `npm run dev` to rebuild on save
 Nomi is a desktop app built on Electron. Sprout lives in the corner of your screen: drag it anywhere, click it to open Nomi Daily. The main window is Nomi Bots, opened from Sprout's panel, the tray or the dock.
 
 - Check-in context comes from a demo feed by default so the demo is the same every run. Set `NOMI_MAC_CONTEXT=1` to read today's real Apple Calendar events instead (macOS asks for Calendar access once).
-- Demo shortcut: ⌘⇧N (or the tray's "Demo: nudge the next plan") makes Sprout pop the reminder for your next plan right away.
+- Demo shortcut: ⌘⌥⇧N (or the tray's "Demo: nudge the next plan") makes Sprout pop the reminder for your next plan right away.
 
 ## Layout
 

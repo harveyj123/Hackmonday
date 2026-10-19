@@ -15,6 +15,7 @@ import type { AnalyzeRequest, PeriodAnalysis, StoryDay } from "./types";
 
 export const TODAY = "2026-10-19";
 export const TODAY_STORE = "nomi.daily.today";
+const TODAY_LABEL = new Date(TODAY + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
 type Tab = "today" | "plans" | "days";
 const BOT_LABEL: Record<string, string> = { "scene-scout": "Scene Scout", "third-place": "Third Place" };
@@ -103,13 +104,14 @@ export function DailyPanel({
 
   return (
     <section
+      data-hit
       className="flex h-full w-full min-w-0 flex-col overflow-hidden rounded-[22px] rounded-br-md border-2 border-stone-900 bg-[#fbfaf8] shadow-[4px_4px_0_#1c1917] animate-[popIn_.28s_cubic-bezier(.2,.9,.25,1.15)] [transform-origin:100%_100%]"
       aria-label="Nomi Daily"
     >
       <header className="flex items-baseline justify-between px-5 pb-1 pt-4">
         <h1 className="font-serif text-2xl">{head}</h1>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-stone-500">Mon, Oct 19</span>
+          <span className="text-xs text-stone-500">{TODAY_LABEL}</span>
           <button onClick={onClose} className="text-sm text-stone-400 hover:text-stone-800" aria-label="Close Nomi Daily">
             ✕
           </button>
