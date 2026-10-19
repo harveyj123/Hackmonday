@@ -10,6 +10,7 @@ import * as transcribe from "./transcribe";
 import * as memory from "./memory";
 import * as triage from "./triage";
 import * as suggestions from "./suggestions";
+import * as live from "./live";
 
 type Handler = (req: Request) => Promise<Response>;
 
@@ -27,6 +28,7 @@ const ROUTES: Record<string, Handler> = {
   "POST /api/route": triage.POST,
   "POST /api/suggestions": suggestions.POST,
   "POST /api/suggest": suggestions.SUGGEST_POST,
+  "GET /api/bots/status": live.STATUS_GET,
 };
 
 export async function handleApi(req: Request): Promise<Response> {

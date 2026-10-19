@@ -66,3 +66,13 @@ export function parseJson<T>(raw: string | null): T | null {
     }
   }
 }
+
+// GET /api/bots/status: whether the bots are live, and which keys need pasting again.
+export async function STATUS_GET() {
+  const malformed = (process.env.NOMI_MALFORMED_KEYS ?? "").split(",").filter(Boolean);
+  return Response.json({
+    model: Boolean(process.env.CLINE_API_KEY || process.env.OPENAI_API_KEY || process.env.LLM_API_KEY),
+    parallel: Boolean(process.env.PARALLEL_API_KEY),
+    malformed: malformed.filter((k) => /CLINE|PARALLEL|OPENAI|LLM/.test(k)),
+  });
+}

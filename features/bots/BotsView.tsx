@@ -56,6 +56,17 @@ export function BotsView({
   const [routed, setRouted] = useState<RouteResponse | null>(null);
   const [shared, setShared] = useState<SharedMemory | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [keyWarning, setKeyWarning] = useState("");
+
+  useEffect(() => {
+    fetch("/api/bots/status")
+      .then((res) => res.json() as Promise<{ model: boolean; parallel: boolean; malformed: string[] }>)
+      .then((s) => {
+        if (s.malformed.length) setKeyWarning(`${s.malformed.join(" and ")} has a stray character. Paste it again in .env.local and restart.`);
+        else if (!s.model || !s.parallel) setKeyWarning(`Demo mode: add ${[!s.model && "CLINE_API_KEY", !s.parallel && "PARALLEL_API_KEY"].filter(Boolean).join(" and ")} to .env.local for live results.`);
+      })
+      .catch(() => undefined);
+  }, []);
   const [showList, setShowList] = useState(true);
   const [sessions, setSessions] = useState<Record<string, ChatSession>>({});
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
@@ -225,6 +236,9 @@ export function BotsView({
           </button>
         </div>
 
+        {keyWarning && (
+          <p className="mx-3 mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-800 ring-1 ring-inset ring-amber-200">{keyWarning}</p>
+        )}
         <form
           className="px-3 pb-2 pt-3"
           onSubmit={(event) => {
