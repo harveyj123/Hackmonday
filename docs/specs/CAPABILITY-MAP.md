@@ -11,6 +11,8 @@ Build order: `discovery` → `browser-actions`
 
 Consumer: the bot engine (`app/api/agent`, Bots teammate) calls `discover()`, and the chat UI (`features/bots`) calls `window.nomi.browser.*`. Nothing else in the app depends on these modules.
 
+> **Pending port:** `app/api/agent` is the Next.js route on `main`. Where the bot engine lives after the Electron + React port isn't known yet. See "Spec conflicts, pending port" in `tasks/plan.md`.
+
 Specs:
 - [SPEC-discovery.md](SPEC-discovery.md)
 - [SPEC-browser-actions.md](SPEC-browser-actions.md)

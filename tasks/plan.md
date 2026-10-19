@@ -5,8 +5,9 @@ Task list: `tasks/todo.md`.
 
 ## 0. Before any code
 
-- **Port layout.** Harvey is porting the app to pure Electron + React (PR #5). The specs use `main/discovery/` and `main/browser/` as placeholder paths. First step: check where main-process code and the preload bridge live, then replace the placeholder in the specs and this plan. If the port isn't merged yet, build discovery as plain TypeScript in `main/discovery/` (no Electron imports), so it moves without changes.
-- **Keys.** `PARALLEL_API_KEY` goes in `.env.local` at the repo root (gitignored). The Electron main entry must call `process.loadEnvFile(".env.local")` inside a `try`. Ask Harvey if it isn't there yet.
+- **Port layout (pending port, checked Oct 19).** The Electron + React port isn't on `main`. PR #5 (`docs/plan-update`) only changes `docs/PLAN.md`. `main` is still Next.js (`app/api/*`) plus a CommonJS Electron shell in `desktop/`. The `main/discovery/` and `main/browser/` placeholders stay until the port lands. Meanwhile discovery is plain TypeScript with no Electron or Next imports, so it moves without changes. Every port-dependent item is marked **pending port** and listed in §5.
+- **Keys.** `PARALLEL_API_KEY` goes in `.env.local` at the repo root (gitignored, already created from `env.local.example`). Scripts call `try { process.loadEnvFile(".env.local") } catch {}` first. The Electron main entry needs the same call; on `main`, `desktop/main.js` doesn't have it (pending port, ask Harvey). Keys live in the main process only, never in the renderer or a preload.
+- **Runtime.** TypeScript everywhere, with no `tsx`. Scripts and tests run on Node 24's native type stripping: `node scripts/x.ts` and `node --test tests/**/*.test.ts`. That means `.ts` extensions on relative imports (`tsconfig.json` gets `allowImportingTsExtensions`, which works because it already has `noEmit`), `import type` for types, no enums, and no `@/` alias in code that Node runs. The port builds Electron's main process separately. `playwright-core` needs Joey's OK at B0.
 
 ## 1. Components and dependencies
 
@@ -51,7 +52,26 @@ browser/window + cdp (spike) ──> job state machine + guards + mock ──> I
 | Shared-file conflicts (types, preload, main entry) | Small separate commits, announced first, merged to `main` before dependent work (WORKFLOW rules) |
 | Wifi at the venue | `NOMI_DISCOVERY_MODE=cache` and `NOMI_BROWSER_MODE=mock` one keypress away |
 
-## 5. Verification at the end
+## 5. Spec conflicts, pending port
+
+Checked against `main` at `102888f` and `docs/PLAN.md` on `docs/plan-update` (PR #5). Listed here and not rewritten until the port lands.
+
+| # | Spec says | `main` today | Affects |
+|---|---|---|---|
+| 1 | The bot engine is `app/api/agent` and calls `discover()` in the main process (CAPABILITY-MAP) | `app/api/agent/route.ts` is a Next.js route. PLAN says the teammate rebuilds it as a main-process handler in the port | D5, D7, C3 |
+| 2 | `nomi.discovery.*` and `nomi.browser.*` go on "the shared preload bridge" | The only preload is `desktop/preload.js`. It loads only in the Sprout pet window and exposes `window.nomi.openDaily`. The main window has no preload | B3, B7 |
+| 3 | The main entry registers the CDP switch, the IPC handlers and `process.loadEnvFile` | The entry is `desktop/main.js` (CommonJS JS, spawns `next dev`), with no `loadEnvFile` | P3, B0, B1, B3 |
+| 4 | The shared contracts (`GoalArea`, `InfoCard`, `PendingAction`) are in `lib/types.ts` | True on `main`. The port may move them. `CalendarEvent` is in `lib/calendar.ts`, not `lib/types.ts` | D1, D7, B7 |
+| 5 | The model is the two-sided client via `BOTS_LLM_PROVIDER` (PLAN §2) | `lib/llm.ts` is single-sided (`LLM_BASE_URL/LLM_API_KEY/LLM_MODEL`). `chat(messages, { json })` exists | D3, B5 |
+| 6 | "`search()` in `lib/parallel.ts` already matches, port as is" | It doesn't send `after_date` or `location`, and `max_results` defaults to 5. The file belongs to the Bots teammate (WORKFLOW) | D0, D2 (extend with a heads-up, or wrap in `main/discovery/parallel`) |
+| 7 | `npm run desktop`, `npm run typecheck`, `browser:try`, `browser:signin` | `desktop` is `electron desktop/main.js` and `typecheck` is `tsc --noEmit`. The `browser:*` scripts don't exist yet | B3, B4 |
+| 8 | PLAN §1: "No public API registers you… Nomi holds the slot in Calendar" | Unchanged on PR #5 | Pitch; update after C4 passes (browser spec, open question 6) |
+
+Already resolved in the specs (Oct 19 decisions): keys stay out of the renderer and preload; TypeScript everywhere with tests in `tests/discovery` and `tests/browser`; `try.ts`; no `tsx`; `luma.com` is the canonical Luma host.
+
+Note: the remote has a branch `electron/pure` ("Rebuild Nomi as a pure Electron app without Next.js") with `electron/main.ts`, `electron/preload.ts` and `electron/api/*`, built by esbuild. It isn't merged or announced, so the placeholders stay until Harvey confirms the layout.
+
+## 6. Verification at the end
 
 - All success criteria in both specs checked off (or explicitly marked as cut)
 - `npm run typecheck` and all unit tests pass

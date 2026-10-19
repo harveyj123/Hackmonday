@@ -6,9 +6,9 @@ v2 changes: the app is now **pure Electron** (PR #5, no Next.js), and the Parall
 
 ## Assumptions (correct these before building)
 
-1. **Pure Electron app** (PR #5): a React renderer, with all outside calls in the **Electron main process**. `discovery` runs in the main process and the renderer reaches it over IPC through the shared preload bridge. Paths below use `main/discovery/`, a placeholder for wherever the port puts main-process code; pin it once the port lands.
+1. **Pure Electron app** (PR #5): a React renderer, with all outside calls in the **Electron main process**. `discovery` runs in the main process and the renderer reaches it over IPC through the shared preload bridge. Paths below use `main/discovery/`, a placeholder for wherever the port puts main-process code; pin it once the port lands. **Pending port:** on `main` today the app is Next.js (`app/api/*` routes) with a CommonJS Electron shell in `desktop/`. Until the port lands, `main/discovery/` is plain TypeScript with no Electron or Next imports, so it moves without changes.
 2. Parallel is the only external data API. There are no Luma, Meetup or LinkedIn APIs and no logged-in scraping.
-3. The model is the main-process two-sided client (Cline / OpenAI / custom, with fallback, per PLAN §2), via `BOTS_LLM_PROVIDER`. `discovery` never picks a provider itself.
+3. The model is the main-process two-sided client (Cline / OpenAI / custom, with fallback, per PLAN §2), via `BOTS_LLM_PROVIDER`. `discovery` never picks a provider itself. **Pending port:** on `main`, `lib/llm.ts` has only one side (`LLM_BASE_URL/LLM_API_KEY/LLM_MODEL`) and no `BOTS_LLM_PROVIDER`. Its `chat(messages, { json })` signature is what `extract` injects, so the model function stays injectable.
 4. The demo persona is in San Francisco and the window is the next 7 days.
 5. The `Opportunity` type lives in `main/discovery/types` until the team agrees to move it into the shared contracts.
 6. Keys (`PARALLEL_API_KEY`, model keys) are read only by the main process and never reach the renderer.
@@ -31,7 +31,7 @@ Give the bot engine a single call that turns a goal into a short, ranked list of
 
 Request details that matter:
 
-- **Search:** `search_queries` (required, 2–3 queries of 3–6 words), `objective`, `mode: "fast"`, `advanced_settings: { source_policy: { include_domains, after_date }, location: "us", max_results }`. Unknown keys are rejected (`additionalProperties: false`). The response is `results[{ url, title, publish_date, excerpts[] }]`, plus `warnings`. The existing `search()` in `lib/parallel.ts` already matches this, so port it as is.
+- **Search:** `search_queries` (required, 2–3 queries of 3–6 words), `objective`, `mode: "fast"`, `advanced_settings: { source_policy: { include_domains, after_date }, location: "us", max_results }`. Unknown keys are rejected (`additionalProperties: false`). The response is `results[{ url, title, publish_date, excerpts[] }]`, plus `warnings`. The existing `search()` in `lib/parallel.ts` on `main` covers `objective`, `search_queries`, `mode: "fast"`, `max_results` (default 5) and `include_domains`, but **not** `after_date` or `location`. Discovery needs those two, so it extends `search()` with optional `afterDate` and `location` (`lib/parallel.ts` is the Bots teammate's file, so ask first) or wraps it in `main/discovery/parallel`. D0 checks that the API accepts both keys.
 - **Task:** `processor: "lite"` (try `base` if quality is poor), `input` (the event URL plus context), `task_spec.output_schema: { type: "json", json_schema }`. The result is `output.content` (our fields) plus `output.basis[].citations[].url`, which become `Opportunity.citations`. A `408` on `/result` means "still running, call again".
 - **FindAll:** `objective`, `entity_type` ("event"), `match_conditions[{ name, description }]`, `generator: "base"`, `match_limit` (minimum 5). Candidates come back with `match_status`; keep `matched` only.
 
@@ -87,7 +87,7 @@ export function toInfoCard(o: Opportunity): InfoCard;              // subtitle "
 export function toCalendarEvent(o: Opportunity): CalendarEvent | null;
 ```
 
-**IPC (added to the shared preload bridge; ask the port owner first):** `nomi.discovery.discover(req)` returns a `DiscoverResult`, and `nomi.discovery.onEvent(cb)` delivers `progress` and `vetted` events. The bot engine also runs in the main process, so it can call `discover()` directly. IPC is only for any renderer-driven flows.
+**IPC (added to the shared preload bridge; ask the port owner first; pending port):** `nomi.discovery.discover(req)` returns a `DiscoverResult`, and `nomi.discovery.onEvent(cb)` delivers `progress` and `vetted` events. The bot engine also runs in the main process, so it can call `discover()` directly. IPC is only for any renderer-driven flows.
 
 `progress` maps onto the bot's status line ("searching Luma, Meetup…" → "reading 8 pages…" → "ranked" → "vetting 3 rooms…").
 
@@ -96,7 +96,7 @@ export function toCalendarEvent(o: Opportunity): CalendarEvent | null;
 **Live path (target ≤ 5 s):**
 1. **Plan queries.** Pick kinds and domains for the area (table below) and build 2–3 Search queries from `goal`, `context`, `city` and the week.
 2. **Search.** One `fast` call per kind, in parallel, with `include_domains`, `after_date` = today and `location: "us"`, `max_results` 8.
-3. **Canonicalize and dedupe.** Lowercase the host, rewrite `luma.com` to `lu.ma`, strip `utm_*`, `ref` and trailing slashes, and dedupe on the canonical URL.
+3. **Canonicalize and dedupe.** Lowercase the host, rewrite `lu.ma` to `luma.com` (Luma's canonical host; `lu.ma` redirects there), strip `utm_*`, `ref` and trailing slashes, and dedupe on the canonical URL.
 4. **Extract.** One `chat({ json: true })` call turns the titles and excerpts into draft `Opportunity` fields (title, start, location, joinMode, source) with `vetted: false`. Only facts present in the excerpts get filled in. Events whose date falls outside the window are dropped.
 5. **Rank.** The same or a second model call orders the results and writes `whyMatch` (≤ 20 words). Without a model, keep Search order and use a template `whyMatch`.
 6. **Return** the top `limit` and write the cache.
@@ -109,10 +109,10 @@ export function toCalendarEvent(o: Opportunity): CalendarEvent | null;
 
 | Area | Default kinds | Search domains |
 |---|---|---|
-| career | event, person, place | events: `lu.ma, meetup.com, eventbrite.com, partiful.com`; people: `linkedin.com, x.com, github.com` (public pages only); places: open web |
+| career | event, person, place | events: `luma.com, lu.ma, meetup.com, eventbrite.com, partiful.com`; people: `linkedin.com, x.com, github.com` (public pages only); places: open web |
 | health | place, group, event | open web + `meetup.com` |
-| hobbies | group, event, place | `meetup.com, eventbrite.com, lu.ma` + open web |
-| social | event, group | `partiful.com, lu.ma, meetup.com` |
+| hobbies | group, event, place | `meetup.com, eventbrite.com, luma.com, lu.ma` + open web |
+| social | event, group | `partiful.com, luma.com, lu.ma, meetup.com` |
 
 ### Modes and fallbacks
 
@@ -125,14 +125,20 @@ export function toCalendarEvent(o: Opportunity): CalendarEvent | null;
 ## Commands
 
 ```bash
-npx tsx scripts/discover.ts --area career --goal "become part of the SF AI founder scene" --city "San Francisco" --days 7
-npx tsx scripts/discover.ts --area health --goal "climb twice a week" --city "San Francisco" --days 7 --vet
-npx tsx scripts/warm.ts                       # FindAll + Task for the demo goals, fills the cache
-npx tsx --test tests/discovery/*.test.ts
-npm run typecheck                             # whatever the port defines
+node scripts/discover.ts --area career --goal "become part of the SF AI founder scene" --city "San Francisco" --days 7
+node scripts/discover.ts --area health --goal "climb twice a week" --city "San Francisco" --days 7 --vet
+node scripts/warm.ts                          # FindAll + Task for the demo goals, fills the cache
+node --test tests/discovery/*.test.ts
+npm run typecheck                             # tsc --noEmit on main; whatever the port defines later
 ```
 
-(`tsx` is a new dev dependency, ask first. If the port ships its own TypeScript runner, use that.)
+There's no `tsx` dependency. Scripts and tests run on Node 24's native type stripping, which brings these rules:
+- relative imports carry the `.ts` extension (`tsconfig` gets `allowImportingTsExtensions`)
+- type-only imports use `import type`
+- no enums, namespaces or parameter properties
+- no `@/` path alias, because Node doesn't resolve it
+
+The Electron main-process build belongs to the port.
 
 ## Project Structure
 
@@ -158,7 +164,7 @@ Match the repo: double quotes, semicolons, 2-space indent, named exports, a shor
 // Luma serves the same event on two hosts and appends tracking params; collapse them so dedupe works.
 export function canonicalUrl(raw: string): string {
   const u = new URL(raw);
-  u.hostname = u.hostname.toLowerCase().replace(/^www\./, "").replace(/^luma\.com$/, "lu.ma");
+  u.hostname = u.hostname.toLowerCase().replace(/^www\./, "").replace(/^lu\.ma$/, "luma.com");
   for (const key of [...u.searchParams.keys()]) {
     if (key.startsWith("utm_") || key === "ref") u.searchParams.delete(key);
   }
@@ -169,7 +175,7 @@ export function canonicalUrl(raw: string): string {
 
 ## Testing Strategy
 
-- **Unit** (`node:test` via `tsx --test`):
+- **Unit** (`node:test` via `node --test`, native type stripping):
   - `canonicalUrl`, dedupe and window filtering
   - mapping a recorded Search response through extraction (model stubbed) into `Opportunity`
   - merging a recorded Task `output` and its `basis` citations
@@ -199,9 +205,12 @@ export function canonicalUrl(raw: string): string {
 
 ## Open Questions
 
-1. **Where main-process code lives in the port:** `main/discovery/` is a placeholder. Who owns the shared preload bridge?
+1. **Where main-process code lives in the port (pending port):** `main/discovery/` is a placeholder. Who owns the shared preload bridge? On `main` the only preload is `desktop/preload.js`, which is loaded only in the Sprout pet window and exposes just `window.nomi.openDaily`.
 2. **Parallel client ownership:** `lib/parallel.ts` was listed under the Bots teammate. In the port, does discovery own the Parallel client or extend a shared one?
 3. **Task quality vs speed:** is `lite` good enough to vet events, or do we need `base`? Decide with the first live run.
 4. **FindAll cost and latency:** not checked yet (the generator pricing page). Pre-warm only until we know.
 5. **Category names:** the shared contracts use `hobbies`; this spec keeps it.
 6. **City:** still SF? PLAN §4 fallback cards are SF.
+7. **Shared types (pending port):** `GoalArea` and `InfoCard` live in `lib/types.ts`, and `CalendarEvent` in `lib/calendar.ts`, on `main`. Discovery imports them from there with `import type` until the port says otherwise.
+
+See "Spec conflicts, pending port" in `tasks/plan.md` for the full list.

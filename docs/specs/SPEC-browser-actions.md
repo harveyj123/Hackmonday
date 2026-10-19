@@ -6,7 +6,7 @@ v2 changes: the app is now **pure Electron** (PR #5, no Next.js). Form answers c
 
 ## Assumptions (correct these before building)
 
-1. **Pure Electron app** (PR #5). This module runs in the **Electron main process** next to the model client and `discovery`. Paths use `main/browser/`, a placeholder until the port lands. When the bridge is missing (for example in a renderer-only preview), the UI falls back to "Open event page".
+1. **Pure Electron app** (PR #5). This module runs in the **Electron main process** next to the model client and `discovery`. Paths use `main/browser/`, a placeholder until the port lands (**pending port**; on `main` the Electron shell is CommonJS JS in `desktop/`). When the bridge is missing (for example in a renderer-only preview), the UI falls back to "Open event page".
 2. Nomi drives its **own visible window** ("Nomi is browsing"), not the user's Chrome. Logins persist in an Electron session partition (`persist:nomi-web`), and the user signs in once per site by hand.
 3. Playwright (`playwright-core`, so no browser download) attaches to Electron's Chromium over CDP through a localhost-only remote-debugging port. This needs to be proven in a 20-minute spike (task 1). The fallback is the same recipe interface driven by `webContents.executeJavaScript` plus `webContents.debugger`.
 4. Recipes are **scripted per site** for the demo paths. A model-guided generic recipe is a stretch goal.
@@ -24,8 +24,8 @@ Turn "this event looks right for you" into "you're on the list", in front of the
 
 ## Tech Stack
 
-- Electron 38 main process, in the same language as the port's main-process code (TypeScript if the port uses it, otherwise JS with `// @ts-check`)
-- `playwright-core` `chromium.connectOverCDP("http://127.0.0.1:<NOMI_CDP_PORT>")` (new dependency, ask first)
+- Electron 38 main process, written in **TypeScript** (the port builds it into Electron's main bundle; pending port). Unit tests and the `try.ts` runner run on Node 24 native type stripping, with no `tsx`.
+- `playwright-core` `chromium.connectOverCDP("http://127.0.0.1:<NOMI_CDP_PORT>")` (new dependency, OK needed at B0)
 - IPC through the port's shared preload bridge, adding a `window.nomi.browser` namespace
 - The `discovery` `Opportunity` type from `main/discovery/types`
 
@@ -65,18 +65,27 @@ type Outcome = "submitted" | "pending_approval" | "already_registered" | "needs_
 
 The `step` events map one-to-one onto `BotTask.milestones` (Open → Sign-in → Fill → Review → Submit → Confirmed).
 
-### Integration with the bot engine (shared-contract change, ask first)
+### Integration with the bot engine (shared-contract change, ask first; pending port)
 
-- Add `"browser_action"` to `PendingAction.kind` in `lib/types.ts`. Its `payload` is an `ActJob`.
+- Add `"browser_action"` to `PendingAction.kind` in `lib/types.ts` (where it is on `main`; the port may move the shared contracts). Its `payload` is an `ActJob`.
 - Chat UI: **Approve** on a `browser_action` calls `prepare()`. The `review` event renders as a card with the screenshot and a **Submit** button that calls `confirm()`. If `window.nomi?.browser` is missing, the card shows the event link ("Open event page") instead.
 
 ### Recipe interface (main process)
 
-```js
-/** @typedef {{ id: string, matches(url: URL): boolean, kinds: ActKind[],
- *   prepare(page, job, ctx): Promise<ReviewPayload>,   // never clicks the final submit
- *   submit(page, job, ctx): Promise<{ outcome: Outcome, detail?: string }> }} Recipe */
+```ts
+// main/browser/recipes/types.ts
+import type { Page } from "playwright-core";
+
+export type Recipe = {
+  id: string;
+  matches(url: URL): boolean;
+  kinds: ActKind[];
+  prepare(page: Page, job: ActJob, ctx: RecipeContext): Promise<ReviewPayload>; // never clicks the final submit
+  submit(page: Page, job: ActJob, ctx: RecipeContext): Promise<{ outcome: Outcome; detail?: string }>;
+};
 ```
+
+(If B0 picks the `webContents` fallback, `Page` becomes a small adapter type with the same methods the recipes use.)
 
 `ctx` provides `emit(step)`, `profile` (from `profile.local.json` in the app's userData folder), `answer(questions[])` (a direct call to the main-process model client), and `guard` (see Safety).
 
@@ -94,7 +103,7 @@ The `step` events map one-to-one onto `BotTask.milestones` (Open → Sign-in →
 - `app.commandLine.appendSwitch("remote-debugging-port", NOMI_CDP_PORT)` (default `9333`) and `remote-debugging-address=127.0.0.1`, enabled only when `NOMI_BROWSER !== "0"`.
 - Nomi browser window: `BrowserWindow({ title: "Nomi is browsing", webPreferences: { partition: "persist:nomi-web", sandbox: true, contextIsolation: true, nodeIntegration: false } })`, with no preload, because the pages are untrusted.
 - Find the right Playwright page: load `about:blank#nomi-<jobId>` first, find that page among the CDP contexts, then `page.goto(opportunity.url)`. The app's own windows (main, Sprout) are never touched.
-- The CDP switch and the `nomi.browser` IPC handlers register from the port's main entry. That's a small edit to a file the port owner controls, so ask first.
+- The CDP switch and the `nomi.browser` IPC handlers register from the port's main entry. That's a small edit to a file the port owner controls, so ask first. **Pending port:** on `main` the entry is `desktop/main.js` (CommonJS, no `process.loadEnvFile`), and the only preload, `desktop/preload.js`, loads in the Sprout pet window, not the main window.
 
 ## Safety and guards
 
@@ -119,16 +128,17 @@ Script names are proposals; align them with the port's `package.json`.
 ```bash
 npm run desktop                                   # app + Nomi browser available (port's start command)
 NOMI_BROWSER_MODE=mock npm run desktop            # UI work without touching real sites
-npm run browser:try -- --url https://lu.ma/<team-event> --action request   # runs one job in Electron, no chat UI
+npm run browser:try -- --url https://luma.com/<team-event> --action request   # runs main/browser/try.ts in Electron, no chat UI
 npm run browser:signin -- luma                    # open the persistent login window
-node --test main/browser/*.test.*
+node --test tests/browser/*.test.ts
 npm run typecheck
 ```
 
 ## Project Structure
 
 ```
-main/browser/index          IPC handlers, job queue, state machine, guards
+main/browser/index.ts       IPC handlers, job queue, state machine
+main/browser/guards.ts      domain lock, rate limit, password/payment/CAPTCHA detection
 main/browser/window         Nomi browser window + persistent partition
 main/browser/cdp            connectOverCDP and page lookup by #nomi-<jobId>
 main/browser/answers        writes custom-question answers with the model client; canned answers without a key
@@ -137,20 +147,21 @@ main/browser/recipes/contact-form
 main/browser/recipes/meetup
 main/browser/recipes/linkedin-assist
 main/browser/mock           scripted events for NOMI_BROWSER_MODE=mock
-main/browser/try            CLI runner for one job
+main/browser/try.ts         CLI runner for one job
 main/browser/fixtures/      local HTML pages that mimic each flow
+tests/browser/              unit tests (state machine, guards, mock, answers)
+spikes/cdp-spike.ts         B0 spike, not shipped
 profile.example.json
 (shared preload bridge)     + nomi.browser namespace, owned by the port
 ```
 
 ## Code Style
 
-Match the port's main-process code: double quotes, semicolons, 2-space indent, small functions, a comment for every *why*. If it's JS, add `// @ts-check` and JSDoc so `tsc` catches contract drift.
+TypeScript, matching the repo: double quotes, semicolons, 2-space indent, small functions, a comment for every *why*. Use erasable syntax only (no enums or parameter properties), `import type` for types and `.ts` extensions on relative imports, so the files run under Node's native type stripping.
 
-```js
-// @ts-check
+```ts
 // Stop before the button that sends anything; the user approves from the chat review card.
-async function prepare(page, job, ctx) {
+async function prepare(page: Page, job: ActJob, ctx: RecipeContext): Promise<ReviewPayload> {
   ctx.emit("open", "active");
   await page.goto(job.opportunity.url, { waitUntil: "domcontentloaded" });
   if (await page.getByText(/you're (registered|going)/i).isVisible()) {
@@ -168,8 +179,8 @@ Selectors are role- and label-based (`getByRole`, `getByLabel`, `getByText`), ne
 
 ## Testing Strategy
 
-- **Unit** (`node --test`): the state machine (double confirm, cancel mid-fill, timeout), guards (domain lock, payment/password detection on sample HTML strings), mock event sequence order, and `ActEvent` → milestone mapping.
-- **Recipe checks on local fixtures:** small hand-written HTML pages under `main/browser/fixtures/` that mimic each flow's structure (a register button, a questions form, a "you're registered" state). `try.js --url file://…` runs a recipe against them in Electron.
+- **Unit** (`node --test tests/browser/*.test.ts`): the state machine (double confirm, cancel mid-fill, timeout), guards (domain lock, payment/password detection on sample HTML strings), mock event sequence order, and `ActEvent` → milestone mapping.
+- **Recipe checks on local fixtures:** small hand-written HTML pages under `main/browser/fixtures/` that mimic each flow's structure (a register button, a questions form, a "you're registered" state). `try.ts --url file://…` runs a recipe against them in Electron.
 - **Live end-to-end (manual, before each checkpoint)** on the team-owned Luma event:
   - signed out → `needs_login`
   - sign in → `prepare` → review card
@@ -179,7 +190,7 @@ Selectors are role- and label-based (`getByRole`, `getByLabel`, `getByText`), ne
 
 ## Boundaries
 
-- **Always:** stop at review before any outbound click; run guards on every navigation; keep the window visible; respect `NOMI_BROWSER_MODE=mock`; keep model and Parallel keys out of the main process and preload.
+- **Always:** stop at review before any outbound click; run guards on every navigation; keep the window visible; respect `NOMI_BROWSER_MODE=mock`; keep model and Parallel keys out of the renderer and preload (they live in the main process only).
 - **Ask first:** changing the shared contracts (`browser_action` kind); editing the port's main entry or preload bridge (CDP switch, `nomi.browser` namespace); adding `playwright-core`; submitting to any target the team doesn't own; adding a new site recipe beyond the table.
 - **Never:** automate LinkedIn connects, DMs or posts; type passwords, payment or ID details; solve or bypass CAPTCHAs; submit without a `confirm()` from the user; run more than one submit per job; drive the user's own Chrome profile; commit `profile.local.json` or session data.
 
@@ -194,11 +205,11 @@ Selectors are role- and label-based (`getByRole`, `getByLabel`, `getByText`), ne
 7. The `contact-form` recipe fills and submits the team's test form, and the message arrives in the teammate's inbox.
 8. When the bridge has no `browser` namespace, `window.nomi?.browser` is undefined and the chat card shows "Open event page".
 9. In `NOMI_BROWSER_MODE=mock` the UI receives open → check_login → fill → review → submit → confirm with no network calls to event sites.
-10. Typecheck and the `main/browser` unit tests pass.
+10. Typecheck and the `tests/browser` unit tests pass.
 
 ## Open Questions
 
-1. **Port layout:** where main-process code and the shared preload bridge live once the Electron + React port lands, and who owns them. `main/browser/` is a placeholder.
+1. **Port layout (pending port):** where main-process code and the shared preload bridge live once the Electron + React port lands, and who owns them. `main/browser/` is a placeholder. See "Spec conflicts, pending port" in `tasks/plan.md`.
 2. **CDP spike:** does `connectOverCDP` see and drive pages in the Electron window reliably on the demo laptop? If not, swap in the `webContents` fallback under the same recipe interface.
 3. **Two taps** (Get me in → Submit): is the Bots teammate fine with the `browser_action` kind and a review card in the chat?
 4. **Demo identity:** whose Luma/Meetup account signs into the Nomi browser? A dedicated demo account is safer.
