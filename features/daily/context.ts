@@ -14,7 +14,7 @@ export const DEMO_CONTEXT: Record<string, ContextItem[]> = {
   "2026-10-19": [
     { kind: "calendar", title: "Deep work", time: "09:00", calendar: "Nomi Demo" },
     { kind: "calendar", title: "Standup", time: "10:30", calendar: "Nomi Demo" },
-    { kind: "calendar", title: "Coffee with Priya · Sightglass", time: "11:30", calendar: "Nomi Demo" },
+    { kind: "calendar", title: "Coffee with Kevin · Sightglass", time: "11:30", calendar: "Nomi Demo" },
     { kind: "calendar", title: "Gym", time: "13:00", calendar: "Nomi Demo" },
     { kind: "calendar", title: "Hackathon demo", time: "15:35", calendar: "Nomi Demo" },
     { kind: "calendar", title: "AI Founders Meetup", time: "18:30", calendar: "Nomi Demo" },

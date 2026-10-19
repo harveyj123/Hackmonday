@@ -40,7 +40,7 @@ export type BotId = "career-growth" | "health-sports" | "social-hobbies";
 export type ActionItem = {
   id: string;
   botId: BotId;
-  title: string; // "Find more rooms with builders like Priya"
+  title: string; // "Find more rooms with builders like Kevin"
   context: string; // what the bot should know from the day
   fromSegmentId?: string;
 };
