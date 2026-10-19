@@ -63,6 +63,7 @@ export type InfoCard = {
   host?: string;
   why?: string;
   people?: string[];
+  source?: string; // the site a live result came from (e.g. "Luma"); shows "Found with Parallel"
 };
 
 export type ChatMessage = {

@@ -68,6 +68,7 @@ export function BotsView({
       .catch(() => undefined);
   }, []);
   const [showList, setShowList] = useState(true);
+  const [view, setView] = useState<"home" | "chat">("home");
   const [sessions, setSessions] = useState<Record<string, ChatSession>>({});
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [sessionEpoch, setSessionEpoch] = useState(0);
@@ -116,7 +117,7 @@ export function BotsView({
     if (!memoryStamp) return;
     fetch("/api/suggestions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ limit: 3 }) })
       .then((res) => res.json() as Promise<SuggestionsResponse>)
-      .then((data) => setSuggestions(data.suggestions))
+      .then((data) => setSuggestions(data.suggestions.filter((sug, i, all) => all.findIndex((x) => x.title === sug.title) === i)))
       .catch(() => undefined);
     // Re-scout when the goals change, not on every chat fact.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,17 +128,38 @@ export function BotsView({
     if (next) setActive(next);
     setPending(item);
     setShowList(false);
+    setView("chat");
   }
 
-  async function submitRequest() {
-    const text = request.trim();
+  // The home view's four tiles come straight from the shared memory and the bots' scouting.
+  const tiles = useMemo(() => {
+    const items = shared?.items ?? [];
+    const daily = items.filter((m) => m.id.startsWith("daily-"));
+    const person = [...daily, ...items].find((m) => m.kind === "person");
+    const behind = [...(shared?.goals ?? [])].sort((a, b) => a.progress - b.progress)[0];
+    const planned = [...daily, ...items].find((m) => m.kind === "commitment");
+    const next = suggestions[0];
+    return [
+      person && { label: "From today", text: person.text, ask: `More rooms with people like this: ${person.text}` },
+      behind && { label: "Goal", text: `${behind.title}. ${behind.note ?? `${Math.round(behind.progress * 100)}% there`}`, ask: `Help me with my goal: ${behind.title}` },
+      planned && { label: "Planned", text: planned.text, ask: `Prep me for: ${planned.text}` },
+      next && { label: "Next", text: `${next.title}${next.when ? ` · ${next.when}` : ""}`, suggestion: next },
+    ].filter(Boolean) as { label: string; text: string; ask?: string; suggestion?: Suggestion }[];
+  }, [shared, suggestions]);
+
+  async function submitRequest(preset?: string) {
+    const text = (preset ?? request).trim();
     if (!text || routing) return;
+    setRequest(text);
     setRouting(true);
     try {
       const res = await fetch("/api/route", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
       const route = (await res.json()) as RouteResponse;
       setRouted(route);
+      // Let the routing line land on screen before the bot's thread opens.
+      await new Promise((resolve) => setTimeout(resolve, 1100));
       setRequest("");
+      setRouted(null);
       void fetch("/api/memory", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -155,6 +177,7 @@ export function BotsView({
     if (next) setActive(next);
     setPending(handoff);
     setShowList(false);
+    setView("chat");
     onHandoffConsumed();
   }, [handoff, onHandoffConsumed]);
 
@@ -199,29 +222,223 @@ export function BotsView({
       .catch(() => undefined);
   }, []);
 
+  const sharedItems = shared?.items ?? [];
+  const memoryChips = [
+    ...sharedItems.filter((m) => m.id.startsWith("daily-")).map((m) => ({ ...m, fresh: true })),
+    ...(shared?.goals ?? []).map((g) => ({ id: g.id, kind: "goal" as const, text: `${g.title}: ${Math.round(g.progress * 100)}%`, createdAt: g.updatedAt, fresh: false })),
+    ...sharedItems.filter((m) => !m.id.startsWith("daily-")).slice(-8).reverse().map((m) => ({ ...m, fresh: Date.now() - new Date(m.createdAt).getTime() < 3600_000 })),
+  ].slice(0, 12);
+
   return (
-    <div className="mx-auto flex h-[calc(100dvh-2rem)] min-h-[620px] w-full max-w-[1180px] overflow-hidden rounded-[24px] border border-black/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.12)]">
+    <div className="mx-auto flex h-[calc(100dvh-2rem)] min-h-[620px] w-full max-w-[1180px] overflow-hidden rounded-[18px] border border-black/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.12)]">
       <aside
-        className={`${showList ? "flex" : "hidden"} w-full shrink-0 flex-col border-r border-black/8 bg-[#f7f7f7] min-[500px]:flex min-[500px]:w-[230px] md:w-[320px] lg:w-[340px]`}
+        className={`${showList ? "flex" : "hidden"} w-full shrink-0 flex-col border-r border-[#ebebeb] bg-[#f7f7f7] min-[500px]:flex min-[500px]:w-[260px] md:w-[300px] lg:w-[320px]`}
       >
-        <div className="flex h-14 items-center gap-2 border-b border-black/5 px-5">
+        <div className="flex h-12 items-center gap-2 border-b border-[#ececec] px-4">
           <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
           <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
           <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-          <p className="ml-3 text-sm font-semibold tracking-tight text-neutral-900">Nomi Bots</p>
-          {onOpenDaily && <button
-            type="button"
-            aria-label="Open Nomi Daily"
-            onClick={onOpenDaily}
-            className="rounded-full px-2.5 py-1 text-xs font-medium text-neutral-500 transition hover:bg-black/5 hover:text-neutral-900"
-          >
-            Daily
-          </button>}
           <button
             type="button"
-            aria-label="New conversation"
-            title="New conversation"
             onClick={() => {
+              setView("home");
+              setShowList(false);
+            }}
+            className="ml-2 text-[13px] font-semibold tracking-tight text-neutral-900"
+            title="What do you need?"
+          >
+            Nomi Bots
+          </button>
+          {onOpenDaily && (
+            <button
+              type="button"
+              aria-label="Open Nomi Daily"
+              onClick={onOpenDaily}
+              className="ml-auto rounded-full px-2.5 py-1 text-[11px] font-medium text-neutral-500 transition hover:bg-black/5 hover:text-neutral-900"
+            >
+              Daily
+            </button>
+          )}
+        </div>
+
+        {keyWarning && (
+          <p className="mx-3 mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-800 ring-1 ring-inset ring-amber-200">{keyWarning}</p>
+        )}
+
+        <div className="overflow-y-auto">
+          {visibleBots.map((bot) => {
+            const meta = BOT_META[bot.id] ?? BOT_META["career-growth"];
+            const selected = view === "chat" && active.id === bot.id;
+            const latest = sessions[bot.id]?.messages.filter((m) => m.text).at(-1)?.text ?? meta.preview;
+            const goal = shared?.goals.find((g) => g.botId === bot.id);
+            const unread = Boolean(sessions[bot.id]?.messages.length) && !selected && sessions[bot.id]?.messages.at(-1)?.role === "bot";
+            return (
+              <button
+                key={bot.id}
+                type="button"
+                onClick={() => {
+                  setActive(bot);
+                  setPending(null);
+                  setShowList(false);
+                  setView("chat");
+                }}
+                className={`flex w-full items-center gap-3 border-b border-[#efefef] px-4 py-3 text-left transition ${selected ? "bg-[#e9e9eb]" : "hover:bg-black/[0.03]"}`}
+              >
+                <BotAvatar bot={bot} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline gap-2">
+                    <span className="truncate text-[13px] font-semibold text-neutral-900">{bot.name}</span>
+                    {unread && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-[#0a84ff]" />}
+                  </span>
+                  <span className="mt-0.5 block truncate text-[11px] text-[#8a8a8e]">{latest}</span>
+                  {goal && (
+                    <span className="mt-1.5 flex items-center gap-2" title={`${goal.title}${goal.note ? ` · ${goal.note}` : ""}`}>
+                      <span className="h-1 flex-1 overflow-hidden rounded-full bg-black/[0.07]">
+                        <span className="block h-full rounded-full bg-[#4f9a4a] transition-all duration-700" style={{ width: `${Math.round(goal.progress * 100)}%` }} />
+                      </span>
+                      <span className="shrink-0 text-[10px] tabular-nums text-[#8a8a8e]">{Math.round(goal.progress * 100)}%</span>
+                    </span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-auto border-t border-[#ececec] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8b877f]">Shared memory · fed by Daily</p>
+          <div className="mt-2 flex max-h-[148px] flex-wrap gap-1 overflow-y-auto">
+            {memoryChips.length === 0 && <span className="text-[11px] text-neutral-400">Do a check-in in Sprout and it shows up here.</span>}
+            {memoryChips.map((m) => (
+              <span
+                key={m.id}
+                title={`${m.kind}${m.id.startsWith("daily-") ? " · from Daily" : ""}`}
+                className={`group inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] ${m.fresh ? "border-[#cfe5c3] bg-[#e7f2df] text-[#2f6b2b]" : "border-[#e3e3e3] bg-white text-[#3b3a36]"}`}
+              >
+                <span className="truncate">{m.text}</span>
+                {!m.id.startsWith("daily-") && m.kind !== "goal" && (
+                  <button type="button" onClick={() => forgetMemory(m.id)} aria-label={`Forget ${m.text}`} className="hidden text-neutral-400 hover:text-red-500 group-hover:inline">×</button>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      <main className={`${showList ? "hidden" : "flex"} min-w-0 flex-1 flex-col min-[500px]:flex`}>
+        {view === "home" ? (
+          <div className="flex-1 overflow-y-auto">
+            <button type="button" onClick={() => setShowList(true)} className="m-3 text-sm text-neutral-500 min-[500px]:hidden">‹ Bots</button>
+            <div className="mx-auto flex max-w-[640px] flex-col gap-3 px-6 pt-10 sm:pt-16">
+              <h2 className="font-serif text-[34px] leading-tight text-neutral-900">What do you need?</h2>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submitRequest();
+                }}
+                className="flex items-center gap-2 rounded-full border-2 border-neutral-900 bg-white py-1.5 pl-5 pr-1.5"
+              >
+                <input
+                  autoFocus
+                  value={request}
+                  onChange={(event) => setRequest(event.target.value)}
+                  placeholder="Ask for anything. Nomi picks the right bot."
+                  aria-label="What do you need? Nomi sends it to the right bot"
+                  className="min-w-0 flex-1 bg-transparent py-1.5 text-[15px] text-neutral-900 outline-none placeholder:text-[#8a8a8e]"
+                />
+                <button
+                  type="submit"
+                  disabled={!request.trim() || routing}
+                  aria-label="Send"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#0a84ff] text-white transition disabled:bg-neutral-200"
+                >
+                  ↑
+                </button>
+              </form>
+              {(routing || routed) && (
+                <div className="flex flex-wrap items-center gap-2 text-[13px] text-[#55524c]">
+                  <span>Routing</span>
+                  <span className="text-[#8a8a8e]">→</span>
+                  {!routed && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#0a84ff]" />}
+                  {routed &&
+                    BOTS.map((bot) =>
+                      bot.id === routed.botId ? (
+                        <span key={bot.id} className="inline-flex items-center gap-1.5 rounded-full border border-[#f6cdb9] bg-[#fff1ea] py-0.5 pl-0.5 pr-2.5 font-semibold text-[#a8401c]">
+                          <BotAvatar bot={bot} tiny />
+                          {bot.name}
+                        </span>
+                      ) : (
+                        <span key={bot.id} className="inline-flex items-center gap-1 opacity-45">
+                          <BotAvatar bot={bot} tiny />
+                          {bot.name.split(" ")[0]}
+                        </span>
+                      ),
+                    )}
+                  {routed?.reason && <span className="w-full text-[12px] text-[#8a8a8e]">{routed.reason}</span>}
+                </div>
+              )}
+              <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                {tiles.map((tile) => (
+                  <button
+                    key={tile.label}
+                    type="button"
+                    onClick={() =>
+                      tile.suggestion
+                        ? openWith({
+                            id: tile.suggestion.id,
+                            botId: tile.suggestion.botId,
+                            title: tile.suggestion.title,
+                            context: [tile.suggestion.why, tile.suggestion.when, tile.suggestion.where, tile.suggestion.url].filter(Boolean).join(" · "),
+                          })
+                        : tile.ask && void submitRequest(tile.ask)
+                    }
+                    className="flex flex-col gap-0.5 rounded-xl border border-[#ececec] px-3.5 py-3 text-left transition hover:border-black/20"
+                  >
+                    <span className="text-[13px] font-semibold text-neutral-900">{tile.label}</span>
+                    <span className="line-clamp-2 text-[12px] leading-snug text-[#8a8a8e]">{tile.text}</span>
+                  </button>
+                ))}
+              </div>
+              {suggestions.length > 1 && (
+                <div className="mt-4">
+                  <p className="pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8b877f]">Scouted for you</p>
+                  <div className="space-y-2">
+                    {suggestions.slice(1).map((sug) => {
+                      const bot = BOTS.find((b) => b.id === sug.botId);
+                      return (
+                        <button
+                          key={sug.id}
+                          type="button"
+                          onClick={() => openWith({ id: sug.id, botId: sug.botId, title: sug.title, context: [sug.why, sug.when, sug.where, sug.url].filter(Boolean).join(" · ") })}
+                          className="flex w-full items-center gap-3 rounded-xl border border-[#ececec] px-3 py-2.5 text-left transition hover:border-black/20"
+                        >
+                          {bot && <BotAvatar bot={bot} small />}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13px] font-semibold text-neutral-900">{sug.title}</span>
+                            <span className="block truncate text-[12px] text-[#8a8a8e]">{[sug.when, sug.why].filter(Boolean).join(" · ")}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <ChatThread
+            key={`${active.id}-${sessionEpoch}-${sessionsLoaded}-${pending?.id ?? ""}`}
+            bot={active}
+            handoff={pending}
+            avatar={<BotAvatar bot={active} small />}
+            initialSession={sessions[active.id]}
+            memories={memories}
+            onSessionChange={rememberSession}
+            onMemoriesLearned={rememberFacts}
+            onForgetMemory={forgetMemory}
+            onBack={() => setShowList(true)}
+            onOpenDaily={onOpenDaily}
+            onNewChat={() => {
               setSessions((current) => {
                 const next = { ...current };
                 delete next[active.id];
@@ -230,151 +447,8 @@ export function BotsView({
               setPending(null);
               setSessionEpoch((value) => value + 1);
             }}
-            className="ml-auto grid h-7 w-7 place-items-center rounded-full text-xl font-light text-neutral-500 transition hover:bg-black/5 hover:text-neutral-900"
-          >
-            +
-          </button>
-        </div>
-
-        {keyWarning && (
-          <p className="mx-3 mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-800 ring-1 ring-inset ring-amber-200">{keyWarning}</p>
+          />
         )}
-        <form
-          className="px-3 pb-2 pt-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submitRequest();
-          }}
-        >
-          <label className="flex min-h-10 items-center gap-2 rounded-xl bg-white px-3 text-neutral-400 shadow-sm ring-1 ring-inset ring-black/[0.08] focus-within:ring-black/20">
-            <span aria-hidden="true" className="text-sm">✨</span>
-            <input
-              value={request}
-              onChange={(event) => setRequest(event.target.value)}
-              placeholder="What do you need?"
-              aria-label="What do you need? Nomi sends it to the right bot"
-              className="min-w-0 flex-1 bg-transparent py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
-            />
-            <button
-              type="submit"
-              disabled={!request.trim() || routing}
-              className="rounded-lg bg-neutral-900 px-2.5 py-1 text-[11px] font-semibold text-white transition disabled:bg-neutral-200 disabled:text-neutral-400"
-            >
-              {routing ? "…" : "Ask"}
-            </button>
-          </label>
-          {routed && (
-            <p className="mt-1.5 truncate px-1 text-[11px] text-neutral-400">
-              Sent to <span className="font-medium text-neutral-600">{BOTS.find((b) => b.id === routed.botId)?.name}</span>
-              {routed.reason ? ` · ${routed.reason}` : ""}
-            </p>
-          )}
-        </form>
-
-        <div className="flex-1 overflow-y-auto px-2 pb-3">
-          {visibleBots.map((bot) => {
-            const meta = BOT_META[bot.id] ?? BOT_META["career-growth"];
-            const selected = active.id === bot.id;
-            const latest = sessions[bot.id]?.messages.at(-1)?.text ?? meta.preview;
-            const goal = shared?.goals.find((g) => g.botId === bot.id);
-            return (
-              <button
-                key={bot.id}
-                type="button"
-                onClick={() => {
-                  if (!bot.live) return;
-                  setActive(bot);
-                  setPending(null);
-                  setShowList(false);
-                }}
-                className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
-                  selected ? "bg-[#e8e8e8]" : "hover:bg-black/[0.035]"
-                } ${!bot.live ? "cursor-default" : ""}`}
-              >
-                <BotAvatar bot={bot} />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline gap-2">
-                    <span className={`truncate text-[14px] font-semibold ${bot.live ? "text-neutral-900" : "text-neutral-500"}`}>
-                      {bot.name}
-                    </span>
-                    <span className="ml-auto shrink-0 text-[11px] text-neutral-400">{meta.time}</span>
-                  </span>
-                  <span className="mt-0.5 flex items-center gap-2">
-                    <span className="truncate text-xs text-neutral-500">{latest}</span>
-                    {meta.unread && <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />}
-                  </span>
-                  {goal && (
-                    <span className="mt-1.5 flex items-center gap-2" title={`${goal.title}${goal.note ? ` · ${goal.note}` : ""}`}>
-                      <span className="h-1 flex-1 overflow-hidden rounded-full bg-black/[0.07]">
-                        <span className="block h-full rounded-full bg-neutral-800 transition-all" style={{ width: `${Math.round(goal.progress * 100)}%` }} />
-                      </span>
-                      <span className="shrink-0 text-[10px] tabular-nums text-neutral-400">{Math.round(goal.progress * 100)}%</span>
-                    </span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-
-          {suggestions.length > 0 && (
-            <div className="mt-3 px-1">
-              <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Scouted for you</p>
-              <div className="space-y-1.5">
-                {suggestions.map((sug) => {
-                  const bot = BOTS.find((b) => b.id === sug.botId);
-                  return (
-                    <button
-                      key={sug.id}
-                      type="button"
-                      onClick={() =>
-                        openWith({
-                          id: sug.id,
-                          botId: sug.botId,
-                          title: sug.title,
-                          context: [sug.why, sug.when, sug.where, sug.url].filter(Boolean).join(" · "),
-                        })
-                      }
-                      className="block w-full rounded-xl border border-black/[0.06] bg-white px-3 py-2.5 text-left shadow-sm transition hover:border-black/15"
-                    >
-                      <span className="flex items-center gap-1.5 text-[10px] text-neutral-400">
-                        {bot && <BotAvatar bot={bot} tiny />}
-                        {bot?.name}
-                        {sug.when && <span className="ml-auto truncate">{sug.when}</span>}
-                      </span>
-                      <span className="mt-1 block truncate text-[13px] font-semibold text-neutral-900">{sug.title}</span>
-                      <span className="mt-0.5 line-clamp-2 block text-[11px] leading-snug text-neutral-500">{sug.why}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3 border-t border-black/5 px-5 py-3">
-          <div className="grid h-8 w-8 place-items-center rounded-full bg-neutral-950 text-xs font-semibold text-white">H</div>
-          <div className="min-w-0">
-            <p className="truncate text-xs font-semibold text-neutral-900">Harvey</p>
-            <p className="truncate text-[11px] text-neutral-400">Your environment, on purpose</p>
-          </div>
-          <button aria-label="Settings" className="ml-auto text-lg text-neutral-400 hover:text-neutral-700">···</button>
-        </div>
-      </aside>
-
-      <main className={`${showList ? "hidden" : "flex"} min-w-0 flex-1 min-[500px]:flex`}>
-        <ChatThread
-          key={`${active.id}-${sessionEpoch}-${sessionsLoaded}`}
-          bot={active}
-          handoff={pending}
-          avatar={<BotAvatar bot={active} small />}
-          initialSession={sessions[active.id]}
-          memories={memories}
-          onSessionChange={rememberSession}
-          onMemoriesLearned={rememberFacts}
-          onForgetMemory={forgetMemory}
-          onBack={() => setShowList(true)}
-          onOpenDaily={onOpenDaily}
-        />
       </main>
     </div>
   );
