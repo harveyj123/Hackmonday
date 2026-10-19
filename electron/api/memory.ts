@@ -40,10 +40,19 @@ function seed(): SharedMemory {
 
 let cache: SharedMemory | null = null;
 
+// The demo person was renamed from Priya to Kevin; fix stores saved before that, so nobody has to delete the file.
+function migrate(mem: SharedMemory): SharedMemory {
+  const raw = JSON.stringify(mem);
+  if (!raw.includes("Priya")) return mem;
+  const next = JSON.parse(raw.replaceAll("Priya", "Kevin")) as SharedMemory;
+  write(next);
+  return next;
+}
+
 export function readMemory(): SharedMemory {
   if (cache) return cache;
   try {
-    cache = JSON.parse(fs.readFileSync(file(), "utf8")) as SharedMemory;
+    cache = migrate(JSON.parse(fs.readFileSync(file(), "utf8")) as SharedMemory);
   } catch {
     cache = seed();
   }
@@ -87,11 +96,8 @@ export function updateMemory(update: MemoryUpdate): SharedMemory {
     const fresh = update.daily.filter((m) => m.id.startsWith("daily-") && m.text?.trim());
     const hadDaily = mem.items.some((m) => m.id.startsWith("daily-"));
     mem.items = [...mem.items.filter((m) => !m.id.startsWith("daily-")), ...fresh];
-    // Daily was reset ("start over"): put goal progress and the event feed back to day one too.
-    if (hadDaily && !fresh.length) {
-      mem.goals = seed().goals;
-      mem.events = [];
-    }
+    // Daily was reset ("start over", ⌥⌘0): put the whole store back to day one too.
+    if (hadDaily && !fresh.length) return write(seed());
   }
 
   if (update.forget) mem.items = mem.items.filter((m) => m.id !== update.forget);
@@ -111,6 +117,11 @@ export function updateMemory(update: MemoryUpdate): SharedMemory {
   mem.events = mem.events.slice(0, MAX_EVENTS);
 
   return write(mem);
+}
+
+// ⌥⌘0, "start the demo over": back to the seed.
+export function resetMemory(): SharedMemory {
+  return write(seed());
 }
 
 // The text block every bot prompt gets.

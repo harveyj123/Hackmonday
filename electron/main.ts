@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { handleApi } from "./api/router";
+import { resetMemory } from "./api/memory";
 
 const ROOT = app.getAppPath();
 const DIST = path.join(ROOT, "dist");
@@ -178,6 +179,9 @@ function demoNewDay() {
   petWindow?.webContents.send("nomi:pet", "demo-new-day");
 }
 function demoReset() {
+  // The bots start over too: seed memory back, chats cleared.
+  resetMemory();
+  void mainWindow?.webContents.executeJavaScript('localStorage.removeItem("nomi-agent-conversations-v6"); location.reload();').catch(() => undefined);
   petWindow?.show();
   petWindow?.webContents.send("nomi:pet", "demo-reset");
 }
