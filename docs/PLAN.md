@@ -57,7 +57,7 @@ Merges bullets 3 and 4. "You want to climb twice a week and meet builders": Para
 
 ## 4. How Daily connects to Bots (the story the judges remember)
 
-Daily isn't a journal; it's the **sensor**. The open model turns your day into JSON segments `{time, place, people[], activity, mood, goal_fit: +1|0|-1, why}`. A red segment ("3 hours scrolling at home, no one met") becomes a suggested action ("Find a place to work around builders"), and one tap hands it to Third Place. A green one ("great chat with Priya at the AI meetup") hands off to Scene Scout ("find more rooms Priya would be in"). That loop, **reflect, then act**, is the differentiator from every inbox-summary agent in the room.
+Daily isn't a journal; it's the **sensor**. The open model turns your day into JSON segments `{time, place, people[], activity, mood, goal_fit: +1|0|-1, why}`. A red segment ("3 hours scrolling at home, no one met") becomes a suggested action ("Find a place to work around builders"), and one tap hands it to Third Place. A green one ("great chat with Kevin at the AI meetup") hands off to Scene Scout ("find more rooms Kevin would be in"). That loop, **reflect, then act**, is the differentiator from every inbox-summary agent in the room.
 
 ## 4b. The Nomi pet (your idea, folded in)
 
@@ -82,9 +82,9 @@ Nomi Daily gets a face: a small, cute pet that lives in the corner of your scree
 ## 6. Demo script (about 3 minutes)
 
 1. **Hook (15s):** "Everyone's building agents that manage your inbox. But who you become depends on who you're around. Nomi is an open-source agent that rebuilds your offline environment around your goals."
-2. **Daily (45s):** The Nomi pet pops up in the corner: "hey, how'd today go?" Answer it: "Worked from my apartment all morning, felt stuck. Lunch alone. Went to an AI meetup at 6, met Priya who's building voice agents, felt energized." Hit Generate. The storyboard appears: the morning panel framed red, the meetup framed green. Read the one-line insight: "Your best moments this week all happened in rooms with builders. Your mornings at home are draining you."
+2. **Daily (45s):** The Nomi pet pops up in the corner: "hey, how'd today go?" Answer it: "Worked from my apartment all morning, felt stuck. Lunch alone. Went to an AI meetup at 6, met Kevin who's building voice agents, felt energized." Hit Generate. The storyboard appears: the morning panel framed red, the meetup framed green. Read the one-line insight: "Your best moments this week all happened in rooms with builders. Your mornings at home are draining you."
 3. **Hand-off (10s):** Tap "Hand to Nomi" on the green panel. It switches to Bots and opens Scene Scout.
-4. **Scene Scout live (60s):** Nomi texts: "ok I'm on it 👀", then "found 3 rooms Priya-type people will be in this week". The status line reads "searching Luma, Meetup...". Show cards. Say out loud: **"That's Parallel FindAll and Task on the live web, with citations."** Tap one, then Approve, then tap "Add to Apple Calendar" and show the event land in Calendar. (If the Composio stretch landed: flip to the Gmail sent folder and say "that's Composio".)
+4. **Scene Scout live (60s):** Nomi texts: "ok I'm on it 👀", then "found 3 rooms Kevin-type people will be in this week". The status line reads "searching Luma, Meetup...". Show cards. Say out loud: **"That's Parallel FindAll and Task on the live web, with citations."** Tap one, then Approve, then tap "Add to Apple Calendar" and show the event land in Calendar. (If the Composio stretch landed: flip to the Gmail sent folder and say "that's Composio".)
 5. **Third Place (30s):** Expand the milestones on a second task already running: a gym with Thursday social climbs, Calendar block added.
 6. **Close (20s):** "The brain is an open model, the whole thing was built with Cline, and it's all on GitHub. Nomi: your environment, on purpose."
 

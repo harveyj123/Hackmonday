@@ -24,6 +24,10 @@ function getRecognition(): Recognition | null {
 
 type MicState = "idle" | "listening" | "transcribing";
 
+// The demo's line to say, shown by the mic so the presenter doesn't have to remember it. Tap it to type it in.
+const SAY =
+  "Coffee with Kevin at Sightglass this morning was the best part. Kevin's building voice agents and wants to demo together. Hit the gym at 1, and I'm going to the founders meetup tonight to meet more people like that.";
+
 // 16-bit PCM WAV from mono float samples.
 function wav(chunks: Float32Array[], rate: number) {
   const n = chunks.reduce((a, c) => a + c.length, 0);
@@ -215,12 +219,18 @@ export function Composer({
         )}
         <textarea
           id="checkin-text"
-          className="h-28 w-full resize-none rounded-lg bg-[#f6f5f2] p-2.5 text-[13px] text-[#3b3a36] outline-none placeholder:text-[#8b877f] focus:ring-1 focus:ring-stone-300"
+          className={`${text ? "h-28" : "h-16"} w-full resize-none rounded-lg bg-[#f6f5f2] p-2.5 text-[13px] text-[#3b3a36] outline-none placeholder:text-[#8b877f] focus:ring-1 focus:ring-stone-300`}
           value={text + (interim ? (text ? " " : "") + interim : "")}
           onChange={(e) => onText(e.target.value)}
           readOnly={mic === "listening"}
           placeholder="Tap an event, then talk or type…"
         />
+        {!text && mic !== "transcribing" && (
+          <button onClick={() => onText(SAY)} className="rounded-lg border border-dashed border-[#d9d5cd] px-2.5 py-2 text-left" title="Tap to type it in">
+            <span className="nd-label">{mic === "listening" ? "Say this" : "Try saying"}</span>
+            <span className="mt-0.5 block font-serif text-[14px] leading-snug text-[#3b3a36]">“{SAY}”</span>
+          </button>
+        )}
         {note && <p className="text-[11.5px] text-[#77736c]">{note}</p>}
         <div className="flex items-center justify-between gap-2">
           <button onClick={toggleMic} aria-pressed={mic === "listening"} aria-label={label} className={`nd-pill ${mic === "listening" ? "!bg-[#fde3e1] !text-[#b3261e]" : ""}`}>
