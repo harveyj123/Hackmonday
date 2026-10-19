@@ -71,12 +71,17 @@ export function DailyPanel({
   const [loading, setLoading] = useState(false);
   const [ctx, setCtx] = useState<DayContext | null>(null);
 
-  useEffect(() => {
-    fetch(`/api/context?date=${TODAY}`)
+  const [reading, setReading] = useState(false);
+  // Read the calendar fresh every time the panel opens, and on refresh, so edits in Calendar show up.
+  function readCalendar() {
+    setReading(true);
+    fetch(`/api/context?date=${TODAY}&fresh=1`)
       .then((r) => r.json() as Promise<DayContext>)
       .then(setCtx)
-      .catch(() => setCtx(null));
-  }, []);
+      .catch(() => setCtx(null))
+      .finally(() => setReading(false));
+  }
+  useEffect(readCalendar, []);
 
   async function extractPlans(input: string) {
     const res = await fetch("/api/plans", { method: "POST", body: JSON.stringify({ text: input, today: TODAY }) });
@@ -142,9 +147,9 @@ export function DailyPanel({
       <div className="min-h-0 flex-1 space-y-3.5 overflow-y-auto px-5 py-4">
         {tab === "today" && (
           <>
-            {ctx && ctx.items.length > 0 && !(editing || !day) && (
+            {ctx && !(editing || !day) && (
               <div className="flex flex-col gap-1">
-                <span className="nd-label">From Apple Calendar{ctx.items[0]?.calendar && ctx.items.every((i) => i.calendar === ctx.items[0].calendar) ? ` · ${ctx.items[0].calendar}` : ""}</span>
+                <CalendarLabel items={ctx.items} reading={reading} onRefresh={readCalendar} />
                 {ctx.items.map((i, n) => (
                   <div key={n} className="flex items-center gap-2.5 text-[13px]">
                     <i className="h-2.5 w-2.5 flex-none rounded-[3px] bg-[#ff3b30]" />
@@ -169,7 +174,7 @@ export function DailyPanel({
                 <div className="h-3 w-5/6 animate-pulse rounded bg-[#ece8e1]" />
               </div>
             ) : editing || !day ? (
-              <Composer text={text} onText={setText} onGenerate={generate} loading={loading} calendar={ctx?.items} />
+              <Composer text={text} onText={setText} onGenerate={generate} loading={loading} calendar={ctx?.items} reading={reading} onRefresh={readCalendar} />
             ) : (
               <div className="animate-[fadeUp_.3s_ease-out] space-y-3">
                 <Magazine day={day} animate />
@@ -221,6 +226,18 @@ export function DailyPanel({
         </button>
       </footer>
     </section>
+  );
+}
+
+export function CalendarLabel({ items, reading, onRefresh }: { items: DayContext["items"]; reading: boolean; onRefresh: () => void }) {
+  const cals = [...new Set(items.map((i) => i.calendar).filter(Boolean))];
+  return (
+    <div className="flex items-center justify-between">
+      <span className="nd-label">From Apple Calendar{cals.length === 1 ? ` · ${cals[0]}` : ""}</span>
+      <button onClick={onRefresh} disabled={reading} className="text-[11.5px] text-[#77736c] hover:text-[#1d1c1a] disabled:opacity-60" aria-label="Refresh calendar">
+        {reading ? "Reading…" : "↻ Refresh"}
+      </button>
+    </div>
   );
 }
 

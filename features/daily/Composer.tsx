@@ -56,12 +56,16 @@ export function Composer({
   onGenerate,
   loading,
   calendar = [],
+  reading = false,
+  onRefresh,
 }: {
   text: string;
   onText: (t: string) => void;
   onGenerate: () => void;
   loading: boolean;
   calendar?: ContextItem[];
+  reading?: boolean;
+  onRefresh?: () => void;
 }) {
   const [mic, setMic] = useState<MicState>("idle");
   const [interim, setInterim] = useState("");
@@ -164,9 +168,17 @@ export function Composer({
 
   return (
     <div className="flex flex-col gap-3.5">
-      {events.length > 0 && (
+      {(events.length > 0 || onRefresh) && (
         <div className="flex flex-col gap-1">
-          <span className="nd-label">From Apple Calendar{cals.length === 1 ? ` · ${cals[0]}` : ""}</span>
+          <div className="flex items-center justify-between">
+            <span className="nd-label">From Apple Calendar{cals.length === 1 ? ` · ${cals[0]}` : ""}</span>
+            {onRefresh && (
+              <button onClick={onRefresh} disabled={reading} className="text-[11.5px] text-[#77736c] hover:text-[#1d1c1a] disabled:opacity-60" aria-label="Refresh calendar">
+                {reading ? "Reading…" : "↻ Refresh"}
+              </button>
+            )}
+          </div>
+          {!events.length && !reading && <p className="text-[12.5px] text-[#8b877f]">Nothing on your calendar today.</p>}
           {events.map((e, n) => (
             <button
               key={n}
