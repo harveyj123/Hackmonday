@@ -1,6 +1,6 @@
 // Today's check-in: talk (the big mic) or type what happened, with the day's calendar as a starting point.
-// In the desktop app the mic records audio and /api/transcribe turns it into text; in a plain browser it
-// uses live speech recognition when there is one.
+// In the desktop app the mic records audio and /api/transcribe turns it into text (OpenAI, or Whisper running
+// on the Mac); in a plain browser it uses live speech recognition when there is one.
 import { useEffect, useRef, useState } from "react";
 import { clock, type ContextItem } from "./context";
 
@@ -24,6 +24,32 @@ function getRecognition(): Recognition | null {
 
 type MicState = "idle" | "listening" | "transcribing";
 
+// 16-bit PCM WAV from mono float samples.
+function wav(chunks: Float32Array[], rate: number) {
+  const n = chunks.reduce((a, c) => a + c.length, 0);
+  const view = new DataView(new ArrayBuffer(44 + n * 2));
+  const str = (o: number, t: string) => [...t].forEach((ch, i) => view.setUint8(o + i, ch.charCodeAt(0)));
+  str(0, "RIFF");
+  view.setUint32(4, 36 + n * 2, true);
+  str(8, "WAVEfmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, rate, true);
+  view.setUint32(28, rate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  str(36, "data");
+  view.setUint32(40, n * 2, true);
+  let o = 44;
+  for (const c of chunks)
+    for (const v of c) {
+      view.setInt16(o, Math.max(-1, Math.min(1, v)) * 0x7fff, true);
+      o += 2;
+    }
+  return new Blob([view], { type: "audio/wav" });
+}
+
 export function Composer({
   text,
   onText,
@@ -41,7 +67,7 @@ export function Composer({
   const [interim, setInterim] = useState("");
   const [note, setNote] = useState("");
   const rec = useRef<Recognition | null>(null);
-  const recorder = useRef<MediaRecorder | null>(null);
+  const recorder = useRef<{ stop: () => void } | null>(null);
   const base = useRef("");
   const textRef = useRef(text);
   textRef.current = text;
@@ -59,28 +85,37 @@ export function Composer({
     onText(cur ? `${cur} ${t.trim()}` : t.trim());
   };
 
+  // Records 16 kHz mono WAV, which OpenAI and local Whisper both take as is.
   async function record() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const r = new MediaRecorder(stream);
-      const chunks: Blob[] = [];
-      r.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-      r.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        setMic("transcribing");
-        try {
-          const res = await fetch("/api/transcribe", { method: "POST", body: new Blob(chunks, { type: r.mimeType || "audio/webm" }) });
-          const out = (await res.json()) as { text: string; demo?: boolean };
-          if (out.text) append(out.text);
-          setNote(out.demo ? "No OpenAI key is set, so Sprout filled in a sample of what you might say." : "");
-        } catch {
-          setNote("Sprout couldn't hear that one. Try again, or type it.");
-        } finally {
-          setMic("idle");
-        }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
+      const ctx = new AudioContext({ sampleRate: 16000 });
+      const source = ctx.createMediaStreamSource(stream);
+      const tap = ctx.createScriptProcessor(4096, 1, 1);
+      const chunks: Float32Array[] = [];
+      tap.onaudioprocess = (e) => chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+      source.connect(tap);
+      tap.connect(ctx.destination);
+      recorder.current = {
+        stop: async () => {
+          recorder.current = null;
+          tap.disconnect();
+          source.disconnect();
+          stream.getTracks().forEach((t) => t.stop());
+          await ctx.close();
+          setMic("transcribing");
+          try {
+            const res = await fetch("/api/transcribe", { method: "POST", headers: { "content-type": "audio/wav" }, body: wav(chunks, 16000) });
+            const out = (await res.json()) as { text?: string; error?: string };
+            if (out.text) append(out.text);
+            setNote(out.error ?? (out.text ? "" : "Sprout didn't catch anything. Try again a little closer."));
+          } catch {
+            setNote("Sprout couldn't hear that one. Try again, or type it.");
+          } finally {
+            setMic("idle");
+          }
+        },
       };
-      recorder.current = r;
-      r.start();
       setMic("listening");
       setNote("");
     } catch {

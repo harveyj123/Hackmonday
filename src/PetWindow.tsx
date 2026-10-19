@@ -9,7 +9,7 @@ import { Suggestion, type BotSuggestion, type SuggestResponse } from "@/features
 import { dailyMemories, readSharedMemories, writeDailyMemories } from "@/features/daily/memory";
 import { loadPlans, nudgeAt, planFromFind, PLANS_KEY, savePlans, type Plan } from "@/features/daily/plans";
 import { addEvent, currentHealth, HEALTH_KEY, loadEvents, PLAN_DONE, PLAN_SKIPPED, type HealthEvent } from "@/features/daily/health";
-import { SEED_DAYS } from "@/features/daily/seed";
+import { pastDays, resetDemo, startNextDay, takeArrival } from "@/features/daily/demo";
 import { BOTS } from "@/data/bots";
 import type { StoryDay } from "@/features/daily/types";
 
@@ -116,6 +116,12 @@ export function PetWindow() {
       if (cmd === "open-daily") {
         setTab("today");
         show("panel");
+      } else if (cmd === "demo-new-day" || cmd === "demo-reset") {
+        // Skip ahead to the next plan's day, or start the demo over; reloading picks up the new "today".
+        if (cmd === "demo-new-day") startNextDay();
+        else resetDemo();
+        window.nomi?.setPetView("pet");
+        location.reload();
       } else if (cmd === "demo-suggest") {
         scout();
       } else if (cmd === "demo-nudge") {
@@ -133,6 +139,21 @@ export function PetWindow() {
       window.removeEventListener("keydown", onKey);
       off?.();
     };
+  }, []);
+
+  // Right after skipping ahead, Sprout says good morning and brings up that day's plan.
+  useEffect(() => {
+    if (!takeArrival()) return;
+    const weekday = new Date(TODAY + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" });
+    setSay({ text: `good morning! it's ${weekday}`, delta: 0 });
+    const id = setTimeout(() => {
+      setSay(null);
+      const plan = plansRef.current.find((p) => p.status === "upcoming" && p.date === TODAY);
+      if (!plan) return;
+      setPlans((all) => all.map((p) => (p.id === plan.id ? { ...p, nudged: true } : p)));
+      nudge(plan);
+    }, 2200);
+    return () => clearTimeout(id);
   }, []);
 
   // On a plan's day, at its time, Sprout speaks up once. Plans more than a day overdue stay quiet.
@@ -174,11 +195,11 @@ export function PetWindow() {
     }, 3200);
   }
 
-  const health = currentHealth([...SEED_DAYS, ...(day ? [day] : [])], events);
+  const health = currentHealth([...pastDays(), ...(day ? [day] : [])], events);
 
   // Keep Daily's part of the shared memory current, so every bot knows how the goals are going.
   useEffect(() => {
-    writeDailyMemories(dailyMemories({ today: TODAY, days: [...SEED_DAYS, ...(day ? [day] : [])], plans, health }));
+    writeDailyMemories(dailyMemories({ today: TODAY, days: [...pastDays(), ...(day ? [day] : [])], plans, health }));
   }, [day, plans, health]);
 
   // After a check-in, once the panel closes, the bots scout something from the fresh memory.

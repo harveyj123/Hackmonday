@@ -71,6 +71,8 @@ export async function NUDGE_POST(req: Request) {
   const name = plan.title.replace(/^(try|go to|visit|check out|hit)\s+/i, "");
   return Response.json({
     headline: `It's ${name} day ${plan.emoji}`,
-    message: `You said you wanted to ${plan.title[0].toLowerCase()}${plan.title.slice(1)}, and today's the day. Go enjoy it, you've earned it.`,
+    message: plan.source
+      ? `${plan.source} found ${plan.title} for you, and today's the day. Go enjoy it, you've earned it.`
+      : `You said you wanted to ${/^[A-Z][a-z]/.test(plan.title) ? plan.title[0].toLowerCase() + plan.title.slice(1) : plan.title}, and today's the day. Go enjoy it, you've earned it.`,
   } satisfies NudgeResponse);
 }
