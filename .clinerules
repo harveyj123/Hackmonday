@@ -1,8 +1,8 @@
 # Nomi: rules for Cline
 
 - Read docs/PLAN.md and docs/WORKFLOW.md before planning.
-- Stay inside your feature folder: features/daily + app/api/daily (Daily) or features/bots + app/api/agent + lib/parallel.ts + lib/composio.ts (Bots).
+- Stay inside your feature folder: features/daily + app/api/daily (Daily) or features/bots + app/api/agent + app/api/ics + lib/parallel.ts + lib/calendar.ts + lib/composio.ts (Bots).
 - Do not change lib/types.ts, app/page.tsx or components/ without saying so in the commit message; those are shared.
 - Every API route must still return mock data when its env keys are missing, so the other half keeps working.
-- Bot messages: friend tone, 1 to 3 bubbles, 1 to 3 sentences each. Outbound actions (email, calendar, post) only run after the user taps Approve.
+- Bot messages: friend tone, 1 to 3 bubbles, 1 to 3 sentences each. Outbound actions (calendar holds now; email and posts later) only run after the user taps Approve.
 - Never commit .env or paste keys into code.

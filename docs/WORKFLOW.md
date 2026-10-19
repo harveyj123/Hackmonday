@@ -5,7 +5,7 @@
 | Area | Owner | Files |
 |---|---|---|
 | Nomi Daily + pet | Harvey | `features/daily/`, `app/api/daily/` |
-| Nomi Bots | Teammate | `features/bots/`, `app/api/agent/`, `lib/parallel.ts`, `lib/composio.ts`, `data/bots.ts` |
+| Nomi Bots | Teammate | `features/bots/`, `app/api/agent/`, `lib/parallel.ts`, `lib/calendar.ts`, `app/api/ics/`, `data/bots.ts` (and `lib/composio.ts` later) |
 | Shared | Both, ask first | `lib/types.ts`, `lib/llm.ts`, `app/page.tsx`, `components/` |
 
 The only link between the halves is the `ActionItem` hand-off in `lib/types.ts`: Daily calls `onHandoff(item)`, the shell switches to Bots, and the bot named in `item.botId` opens with that item as its first message. As long as that type holds, neither person blocks the other.
@@ -25,8 +25,8 @@ Both routes fall back to mock data when keys are missing, so each half runs on i
 |---|---|
 | 12:15 | Keys in `.env.local`, both halves run on mocks, types frozen |
 | 1:15 | Daily: real LLM storyboard. Bots: Scene Scout with real Parallel search |
-| 2:00 | Daily: pet moods + hand-off chips. Bots: Composio Gmail draft + Approve |
-| 2:40 | Integration: full happy path from pet to sent email, then Third Place |
+| 2:00 | Daily: pet moods + hand-off chips. Bots: Approve → Apple Calendar .ics hold |
+| 2:40 | Integration: full happy path from pet to an event in Apple Calendar, then Third Place |
 | 3:00 | Code freeze. Record backup video, finish README, submit by 3:15 |
 
 ## Keys

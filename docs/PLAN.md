@@ -2,6 +2,8 @@
 
 **One-liner for judges:** Nomi is an open-source personal agent that reads your day, sees which people, places and communities push you toward your goals, then goes out on the live web and into your inbox to rebuild that environment for you.
 
+> **Update (Harvey's call):** the first build uses **Parallel + Apple Calendar** (an `.ics` file the user taps to add to Calendar, no auth). **Composio moves to a later step** for host emails and LinkedIn posts. Wherever this plan says Composio Gmail or Calendar below, read that as later; in the demo, Scene Scout holds the slot in Apple Calendar and links to the event page so you can request the invite yourself.
+
 ## 1. Can you use the sponsors? Yes, all four fit naturally
 
 | Sponsor | Role in Nomi | What it actually does in the demo |
@@ -81,7 +83,7 @@ Nomi Daily gets a face: a small, cute pet that lives in the corner of your scree
 1. **Hook (15s):** "Everyone's building agents that manage your inbox. But who you become depends on who you're around. Nomi is an open-source agent that rebuilds your offline environment around your goals."
 2. **Daily (45s):** The Nomi pet pops up in the corner: "hey, how'd today go?" Answer it: "Worked from my apartment all morning, felt stuck. Lunch alone. Went to an AI meetup at 6, met Priya who's building voice agents, felt energized." Hit Generate. The storyboard appears: the morning panel framed red, the meetup framed green. Read the one-line insight: "Your best moments this week all happened in rooms with builders. Your mornings at home are draining you."
 3. **Hand-off (10s):** Tap "Hand to Nomi" on the green panel. It switches to Bots and opens Scene Scout.
-4. **Scene Scout live (60s):** Nomi texts: "ok I'm on it 👀", then "found 3 rooms Priya-type people will be in this week". The status line reads "searching Luma, Meetup...". Show cards. Say out loud: **"That's Parallel FindAll and Task on the live web, with citations."** Tap one, and Nomi drafts the host email and a Calendar hold. Tap Approve, then flip to the real Gmail sent folder. **"That's Composio. I connected Gmail once and the agent got hundreds of actions."**
+4. **Scene Scout live (60s):** Nomi texts: "ok I'm on it 👀", then "found 3 rooms Priya-type people will be in this week". The status line reads "searching Luma, Meetup...". Show cards. Say out loud: **"That's Parallel FindAll and Task on the live web, with citations."** Tap one, and Nomi drafts the host email and a Calendar hold. Tap Approve, then tap "Add to Apple Calendar" and show the event land in Calendar. (Later, with Composio: Nomi also emails the host.)
 5. **Third Place (30s):** Expand the milestones on a second task already running: a gym with Thursday social climbs, Calendar block added.
 6. **Close (20s):** "The brain is an open model, the whole thing was built with Cline, and it's all on GitHub. Nomi: your environment, on purpose."
 

@@ -57,7 +57,8 @@ export type InfoCard = {
   title: string;
   subtitle?: string;
   imageUrl?: string;
-  url?: string; // rendered as "View more"
+  url?: string; // rendered as a link
+  cta?: string; // link label, defaults to "View more"
 };
 
 export type ChatMessage = {
@@ -70,8 +71,8 @@ export type ChatMessage = {
 
 export type PendingAction = {
   id: string;
-  kind: "send_email" | "calendar_hold" | "linkedin_post";
-  summary: string; // "Email Sam (host) asking to join Thursday's AI founders dinner"
+  kind: "calendar_hold" | "send_email" | "linkedin_post"; // send_email and linkedin_post come later with Composio
+  summary: string; // "Hold Thu 7pm for AI Founders Dinner"
   payload: Record<string, unknown>;
 };
 

@@ -62,7 +62,7 @@ export function ChatThread({ bot, handoff, onBack }: { bot: Bot; handoff: Action
                   <p className="font-medium">{m.card.title}</p>
                   {m.card.subtitle && <p className="text-xs text-stone-500">{m.card.subtitle}</p>}
                   {m.card.url && (
-                    <a href={m.card.url} target="_blank" rel="noreferrer" className="text-xs text-sky-600">View more</a>
+                    <a href={m.card.url} target="_blank" rel="noreferrer" className="text-xs text-sky-600">{m.card.cta ?? "View more"}</a>
                   )}
                 </div>
               )}
