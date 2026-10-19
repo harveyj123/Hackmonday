@@ -26,7 +26,7 @@ function seed(): SharedMemory {
       item("goal", "Climb twice a week"),
       item("place", "San Francisco (works from home in the Mission)"),
       item("preference", "Small rooms with builders over big mixers"),
-      item("person", "Priya: builds voice agents, met at a SoMa AI meetup"),
+      item("person", "Kevin: builds voice agents, met at a SoMa AI meetup"),
     ],
     goals: [
       { id: "g1", title: "Become part of the AI founder scene in SF", botId: "career-growth", progress: 0.35, note: "2 founder events this month", updatedAt: at },
