@@ -8,7 +8,8 @@ import { Nudge } from "@/features/daily/Nudge";
 import { Suggestion, type BotSuggestion, type SuggestResponse } from "@/features/daily/Suggestion";
 import { dailyMemories, readSharedMemories, writeDailyMemories } from "@/features/daily/memory";
 import { loadPlans, nudgeAt, planFromFind, PLANS_KEY, savePlans, type Plan } from "@/features/daily/plans";
-import { addEvent, currentHealth, HEALTH_KEY, loadEvents, PLAN_DONE, PLAN_SKIPPED, type HealthEvent } from "@/features/daily/health";
+import { addEvent, currentHealth, FIND_PASSED, HEALTH_KEY, loadEvents, PLAN_DONE, PLAN_SKIPPED, type HealthEvent } from "@/features/daily/health";
+import "@/features/daily/daily.css";
 import { pastDays, resetDemo, startNextDay, takeArrival } from "@/features/daily/demo";
 import { BOTS } from "@/data/bots";
 import type { StoryDay } from "@/features/daily/types";
@@ -96,6 +97,15 @@ export function PetWindow() {
 
   useEffect(() => {
     document.documentElement.style.background = "transparent";
+    // The mockups' type: Newsreader for headings, Inter for text (falls back to Georgia and the system font offline).
+    if (!document.getElementById("nomi-daily-fonts")) {
+      const link = Object.assign(document.createElement("link"), {
+        id: "nomi-daily-fonts",
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Inter:wght@400;500;600&display=swap",
+      });
+      document.head.appendChild(link);
+    }
     document.body.style.background = "transparent";
     const onStorage = (e: StorageEvent) => {
       if (e.key === TODAY_STORE) setDay(loadToday().day);
@@ -258,12 +268,12 @@ export function PetWindow() {
 
   if (view === "pet") {
     return (
-      <div className="flex h-screen select-none flex-col items-center justify-end pb-2">
-        <p data-hit className="relative mb-1 max-w-44 rounded-2xl border-2 border-stone-800 bg-white px-3 py-1.5 text-center text-xs font-medium shadow-[3px_3px_0_#292524]">
+      <div className="nomi-daily flex h-screen select-none flex-col items-center justify-end pb-2">
+        <p data-hit className="nd-float relative mb-1 max-w-48 px-3.5 py-2 text-center font-serif text-[15px] leading-tight">
           {say?.text ?? SPROUT_LINES[mood]}
           {say && say.delta !== 0 && (
             <span
-              className={`absolute -right-3 -top-3 animate-[popIn_.3s_ease-out] rounded-full px-2 py-0.5 text-[11px] font-semibold text-white ${say.delta > 0 ? "bg-emerald-500" : "bg-rose-400"}`}
+              className={`absolute -right-3 -top-3 animate-[popIn_.3s_ease-out] rounded-full px-2 py-0.5 font-sans text-[11px] font-semibold text-white ${say.delta > 0 ? "bg-[#4f9a4a]" : "bg-rose-400"}`}
             >
               {say.delta > 0 ? `+${say.delta}` : `−${-say.delta}`} health
             </span>
@@ -275,7 +285,7 @@ export function PetWindow() {
   }
 
   return (
-    <div className="flex h-screen select-none items-end gap-1 p-2 pr-1">
+    <div className="nomi-daily flex h-screen select-none items-end gap-1 p-3 pr-1">
       <div className={`min-w-0 flex-1 ${view === "panel" ? "h-full" : "mb-16"}`}>
         {view === "suggest" && suggestion && (
           <Suggestion
@@ -292,8 +302,17 @@ export function PetWindow() {
               show("pet");
             }}
             onPass={() => {
+              // Passing on a find wilts Sprout a little, like skipping a plan.
               passed.current.push(suggestion.title);
+              setEvents(addEvent({ date: TODAY, delta: FIND_PASSED, reason: `Passed on: ${suggestion.title}`, emoji: suggestion.emoji, kind: "find-passed" }));
+              clearTimeout(reactTimer.current);
+              setReaction("wilt");
+              setSay({ text: "aw, maybe next time", delta: FIND_PASSED });
               show("pet");
+              reactTimer.current = setTimeout(() => {
+                setReaction(null);
+                setSay(null);
+              }, 3200);
             }}
           />
         )}

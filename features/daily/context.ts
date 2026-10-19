@@ -5,14 +5,19 @@ export type ContextItem = {
   kind: "calendar";
   title: string;
   time?: string; // "HH:MM"
+  calendar?: string; // the calendar's name, e.g. "Nomi Demo"
 };
 
 export type DayContext = { date: string; source: "demo" | "mac"; items: ContextItem[]; error?: string };
 
 export const DEMO_CONTEXT: Record<string, ContextItem[]> = {
   "2026-10-19": [
-    { kind: "calendar", title: "Standup", time: "10:00" },
-    { kind: "calendar", title: "AI Founders Meetup, SoMa", time: "18:00" },
+    { kind: "calendar", title: "Deep work", time: "09:00", calendar: "Nomi Demo" },
+    { kind: "calendar", title: "Standup", time: "10:30", calendar: "Nomi Demo" },
+    { kind: "calendar", title: "Coffee with Priya · Sightglass", time: "11:30", calendar: "Nomi Demo" },
+    { kind: "calendar", title: "Gym", time: "13:00", calendar: "Nomi Demo" },
+    { kind: "calendar", title: "Hackathon demo", time: "15:35", calendar: "Nomi Demo" },
+    { kind: "calendar", title: "AI Founders Meetup", time: "18:30", calendar: "Nomi Demo" },
   ],
   "2026-10-22": [{ kind: "calendar", title: "Design review", time: "15:00" }],
   "2026-10-24": [{ kind: "calendar", title: "Lunch with Sam", time: "13:00" }],

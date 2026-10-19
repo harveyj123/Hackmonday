@@ -13,7 +13,7 @@ cal.calendars().filter((c) => !only.length || only.includes(c.name())).forEach((
   try {
     c.events.whose({ _and: [{ startDate: { _greaterThan: start } }, { startDate: { _lessThan: end } }] })().forEach((e) => {
       const s = e.startDate();
-      out.push({ title: e.summary(), time: String(s.getHours()).padStart(2, "0") + ":" + String(s.getMinutes()).padStart(2, "0") });
+      out.push({ title: e.summary(), calendar: c.name(), time: String(s.getHours()).padStart(2, "0") + ":" + String(s.getMinutes()).padStart(2, "0") });
     });
   } catch (err) {}
 });
@@ -26,8 +26,8 @@ function macCalendar(date: string): Promise<ContextItem[]> {
   return new Promise((resolve, reject) => {
     execFile("osascript", ["-l", "JavaScript", "-e", JXA(date, only)], { timeout: 30_000 }, (err, stdout) => {
       if (err) return reject(err);
-      const events = JSON.parse(stdout || "[]") as { title: string; time: string }[];
-      resolve(events.sort((a, b) => a.time.localeCompare(b.time)).map((e) => ({ kind: "calendar", title: e.title, time: e.time })));
+      const events = JSON.parse(stdout || "[]") as { title: string; calendar?: string; time: string }[];
+      resolve(events.sort((a, b) => a.time.localeCompare(b.time)).map((e) => ({ kind: "calendar", title: e.title, time: e.time, calendar: e.calendar })));
     });
   });
 }

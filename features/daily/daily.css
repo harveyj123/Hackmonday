@@ -1,3 +1,121 @@
+/* Nomi Daily's look, from the demo mockups: Newsreader for headings, Inter for text, warm off-white cards
+   with soft shadows. Scoped to .nomi-daily so the Bots window keeps its own styles. */
+.nomi-daily {
+  --nd-fg: #1d1c1a;
+  --nd-muted: #77736c;
+  --nd-faint: #8b877f;
+  --nd-line: #ebe8e2;
+  --nd-card-line: #e7e4de;
+  --nd-paper: #fbfaf8;
+  --nd-leaf: #4f9a4a;
+  --nd-leaf-soft: #e7f2df;
+  --nd-leaf-ink: #2f6b2b;
+  font-family: "Inter", -apple-system, system-ui, "Segoe UI", sans-serif;
+  color: var(--nd-fg);
+  line-height: 1.4;
+}
+.nomi-daily .font-serif {
+  font-family: "Newsreader", Georgia, "Times New Roman", serif;
+  font-weight: 500;
+}
+.nd-label {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nd-faint);
+  font-weight: 600;
+}
+/* A floating card next to Sprout: the panel, the nudge, a bot's find, Sprout's speech bubble. */
+.nd-float {
+  background: #fff;
+  border-radius: 18px 18px 6px 18px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.26);
+  transform-origin: 100% 100%;
+  animation: popIn 0.32s cubic-bezier(0.2, 0.9, 0.25, 1.12);
+}
+.nd-float.nd-paper {
+  background: var(--nd-paper);
+}
+.nd-pill {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  background: #f1efea;
+  color: var(--nd-fg);
+  transition: filter 0.15s;
+}
+.nd-pill:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+.nd-pill.dark {
+  background: var(--nd-fg);
+  color: #fff;
+}
+.nd-pill.dark:hover:not(:disabled) {
+  filter: brightness(1.35);
+}
+.nd-pill.green {
+  background: #34c759;
+  color: #fff;
+  font-weight: 600;
+}
+.nd-pill:disabled {
+  opacity: 0.4;
+}
+.nd-card {
+  background: #fff;
+  border: 1px solid var(--nd-card-line);
+  border-radius: 11px;
+}
+.nd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--nd-leaf-soft);
+  color: var(--nd-leaf-ink);
+  font-weight: 500;
+}
+.nd-checkin {
+  background: #fff;
+  border: 2px solid var(--nd-fg);
+  border-radius: 12px;
+  box-shadow: 4px 4px 0 var(--nd-fg);
+}
+.nd-wave {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  height: 18px;
+}
+.nd-wave i {
+  width: 3px;
+  background: #b3261e;
+  border-radius: 2px;
+  animation: nd-wv 1s ease-in-out infinite;
+}
+.nd-wave i:nth-child(2) { animation-delay: 0.15s; }
+.nd-wave i:nth-child(3) { animation-delay: 0.3s; }
+.nd-wave i:nth-child(4) { animation-delay: 0.45s; }
+.nd-wave i:nth-child(5) { animation-delay: 0.6s; }
+@keyframes nd-wv {
+  0%, 100% { height: 5px; }
+  50% { height: 17px; }
+}
+/* Days: the growth strip sits on a strip of soil. */
+.nd-garden {
+  background: linear-gradient(#fbfaf8 72%, #efe7da 72%);
+  border: 1px solid var(--nd-line);
+  border-radius: 11px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nd-wave i,
+  .nd-float {
+    animation: none !important;
+  }
+}
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }

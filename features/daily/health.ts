@@ -2,12 +2,14 @@
 // it most: going through with one makes Sprout healthier, skipping it makes Sprout wilt a little.
 import type { StoryDay } from "./types";
 
-export type HealthEvent = { id: string; date: string; delta: number; reason: string; emoji: string; kind: "plan-done" | "plan-skipped" };
+export type HealthEvent = { id: string; date: string; delta: number; reason: string; emoji: string; kind: "plan-done" | "plan-skipped" | "find-passed" };
 export type Stage = "wilting" | "droopy" | "healthy" | "thriving" | "blooming";
 
 export const BASE_HEALTH = 50;
 export const PLAN_DONE = 15;
 export const PLAN_SKIPPED = -12;
+// Passing on a bot's find (Not for me, or closing it) wilts Sprout a little.
+export const FIND_PASSED = -5;
 const KEY = "nomi.health.events";
 export const HEALTH_KEY = KEY;
 
