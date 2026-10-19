@@ -61,7 +61,7 @@ Estimates are rough. **Cut line:** D0–D5 + D7, then B0–B4. Everything below 
   - Acceptance: a visible "Nomi is browsing" window with a persistent partition, sandboxed and with no preload. `signIn(site)` opens the login page, and the login survives a restart.
   - Verify: manual: sign in to Luma, restart the app, and you're still signed in.
   - Files: `main/browser/window.ts`, `main/browser/cdp.ts`
-- [ ] **B2: Job state machine + guards + mock** (~30 min)
+- [x] **B2: Job state machine + guards + mock** (~30 min) (done Oct 19, ahead of B0/B1 because it needs no new deps; the screenshot on timeout errors comes with B4)
   - Acceptance: preparing → review → submitting → done. A second `confirm()` does nothing. One job at a time, one submit per site per minute, domain lock, and step/job timeouts. Pages with a password, payment or CAPTCHA end as `needs_manual`. `NOMI_BROWSER_MODE=mock` emits the full event sequence.
   - Verify: `node --test tests/browser/*.test.ts` on the state machine and guards; spec success criteria 5, 6 and 9 on fixtures.
   - Files: `main/browser/index.ts`, `main/browser/guards.ts`, `main/browser/mock.ts`, `tests/browser/state.test.ts`, `tests/browser/guards.test.ts`
