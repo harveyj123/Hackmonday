@@ -3,9 +3,9 @@
 **One-liner for judges:** Nomi is an open-source desktop companion. Sprout, a little pet on your screen, hears about your day, Nomi shows which people, places and communities push you toward your goals, and Nomi bots go out on the live web to put the right rooms on your calendar.
 
 **Current decisions (Oct 19)**
-- **Desktop app** via Electron: a main Nomi window plus an always-on-top **Sprout** pet window. Run with `npm run desktop` (PR #4).
+- **Pure Electron app, no Next.js** (Harvey's call): a React renderer for the screens, and the Electron main process for the API work. There's a main Nomi window plus an always-on-top **Sprout** pet window. The "Nomi desktop app" thread owns the port, and the README has the run commands.
 - **Sprout** is the pet and the Daily check-in (PR #2).
-- **Nomi Daily** has a timeline, typed or voice entry, a magazine storyboard and period analysis (PR #3).
+- **Nomi Daily** has a timeline, typed or voice entry, a magazine storyboard and period analysis (PR #3). It gets ported into the React renderer.
 - **Models** come from two sides, Cline and OpenAI, with automatic fallback and then mocks.
 - **Parallel** finds things and **Apple Calendar** (`.ics`) acts. **Composio is a later stretch.**
 - Harvey owns Daily and a teammate owns Bots (see `docs/WORKFLOW.md`).
@@ -17,7 +17,7 @@
 | **Cline** | Builds Nomi, and powers its brain | We build the app with Cline. Its API (`CLINE_API_KEY`, Cline credits) also serves the model for Daily and Bots, defaulting to `anthropic/claude-sonnet-5.5`. For an open-weight brain, set `CLINE_MODEL=moonshotai/kimi-k3`. |
 | **Parallel** | Nomi's eyes on the world | **Search API** (`/v1/search`, `fast` mode) limited to Luma, Partiful, Meetup and Eventbrite for events and spaces. **Task API** to enrich a hit (host, date, vibe, how to get in). Stretches: **FindAll** for entity lists, and **Monitor** for "new matching event" pings. |
 | **Open-source models** | Swappable brain | Any open-weight model (Kimi K3 through Cline, or any OpenAI-compatible host through `OPENAI_BASE_URL`) slots in with no code change. Say it out loud in the pitch. |
-| **Apple Calendar** | Nomi's hands, for now | Approving a plan returns an `.ics` invite from `/api/ics`. Tapping it adds the event to Calendar, with no keys or login. |
+| **Apple Calendar** | Nomi's hands, for now | Approving a plan makes the main process write an `.ics` invite and open it, which adds the event to Calendar, with no keys or login. |
 | **Composio (later)** | More hands | Gmail to email hosts and LinkedIn to post ("Spotlight" bot). The toolkit can post to LinkedIn but not send DMs. Composio has a judge, so this is the highest-value stretch if there's time after 2:40. |
 
 Pitch line: **Parallel finds it, the model decides, Nomi puts it on your calendar, and Cline built it all.**
@@ -26,18 +26,20 @@ Pitch line: **Parallel finds it, the model decides, Nomi puts it on your calenda
 - No public API registers you for someone else's Luma, Partiful or Meetup event. So Nomi holds the slot in Calendar and links to the event page to request the invite. Say "Nomi gets you in the room", not "Nomi registers you".
 - Every outbound action sits behind a one-tap **Approve**.
 
-## 2. Model setup (`lib/llm.ts`)
+## 2. Model setup (two-sided client, runs in the Electron main process)
 
 - Two named sides: **cline** (`CLINE_API_KEY`, `CLINE_MODEL`) and **openai** (`OPENAI_API_KEY`, `OPENAI_MODEL`, optional `OPENAI_BASE_URL` for any compatible host). The older `LLM_BASE_URL/LLM_API_KEY/LLM_MODEL` still work as a third **custom** side.
-- `LLM_PROVIDER` picks which side goes first. `DAILY_LLM_PROVIDER` and `BOTS_LLM_PROVIDER` override that per feature, and the rest are the fallback. If every side fails or none is set, routes return mocks. If one side runs out of credits, the demo keeps going.
+- `LLM_PROVIDER` picks which side goes first. `DAILY_LLM_PROVIDER` and `BOTS_LLM_PROVIDER` override that per feature, and the rest are the fallback. If every side fails or none is set, Nomi uses mocks. If one side runs out of credits, the demo keeps going.
+- Keys live in `.env.local` and are read only by the main process, so they never reach the renderer.
 - Daily defaults to Claude Sonnet 5.5 via Cline (about 2 to 5 seconds per call). Kimi K3 via Cline is the open-weight option.
 
 ## 3. What the app is
 
-**Desktop shell (`desktop/`, PR #4)**
-- `npm run desktop` opens the main Nomi window and puts Sprout in the bottom-right of the screen, always on top. It reuses `npm run dev` on port 3000 if that's already running.
-- Click Sprout to open the Daily check-in, and drag the bubble to move Sprout. Closing the main window keeps Sprout and the 🌱 tray icon, and you quit from the tray.
-- `npm run desktop:prod` builds first. `NOMI_URL` points the shell at a deployed app.
+**Architecture (pure Electron)**
+- **Main process:** windows, the tray, and all outside calls: the two-sided model client, Parallel search and task, and writing `.ics` invites. It exposes these to the renderer over IPC (what the Next `/api/daily`, `/api/agent` and `/api/ics` routes used to do).
+- **Renderer (React):** the Daily and Bots screens and the toggle. It calls the main process through a small preload bridge, not over HTTP.
+- **Sprout window:** transparent and always on top in the bottom-right of the screen. Click Sprout to open the Daily check-in, and drag to move it. Closing the main window keeps Sprout and the 🌱 tray icon, and you quit from the tray.
+- The shared contracts (`ActionItem`, `DayEntry`, `ChatMessage`, `BotTask`) carry over unchanged, so the Daily → Bots hand-off works the same way.
 
 **Sprout (PR #2)**
 - Sprout is the face of Nomi. It asks "how'd today go?", its mood follows the day's goal fit (six animated moods), and it celebrates when a bot finishes a task.
@@ -50,7 +52,7 @@ Pitch line: **Parallel finds it, the model decides, Nomi puts it on your calenda
 **Nomi Bots (teammate)**
 - Bots home is a grid. **Scene Scout** and **Third Place** are live; Opportunity Radar, Spotlight, Circle Host, Get-In Coach and Space Check are "coming soon" tiles.
 - The chat looks like iMessage: 1 to 3 short friend-style bubbles, info cards with "View more", a status line under the avatar, expandable milestone bars, and Approve buttons.
-- **Bot loop:** a hand-off from Daily comes in, Parallel searches, the model picks two or three and writes the bubbles and cards, the user approves, and an `.ics` invite lands in Apple Calendar.
+- **Bot loop:** a hand-off from Daily comes in, Parallel searches (in the main process), the model picks two or three and writes the bubbles and cards, the user approves, and the main process writes an `.ics` invite and opens it in Apple Calendar.
 
 ## 4. The two live bots
 
@@ -70,19 +72,20 @@ Real fallback cards from a live Parallel search on Oct 19, to use if the wifi dr
 
 | Piece | State |
 |---|---|
-| Scaffold, toggle, hand-off contract, `.ics` route | Merged (#1) |
-| Sprout pet | PR #2 |
-| Nomi Daily with real model calls and fallback | PR #3 |
-| Desktop app with always-on-top Sprout | PR #4 |
-| Bots agent loop (Parallel + model) | **Next, teammate:** replace the canned reply in `app/api/agent` |
+| Scaffold, toggle, hand-off contract, `.ics` | Merged (#1), being ported |
+| Electron shell over Next | Merged (#4), now being replaced |
+| **Pure Electron + React port** | **In progress** ("Nomi desktop app" thread) |
+| Sprout pet | PR #2, ported into the new app |
+| Nomi Daily with real model calls and fallback | PR #3, ported into the new app |
+| Bots agent loop (Parallel + model) | **Next, teammate:** build it as a main-process handler in the new app, replacing the canned reply |
 | Composio host email | Stretch after 2:40 |
 
 ## 6. Timeline (11:45 to 3:15)
 
 | Time | Work |
 |---|---|
-| By 12:15 | Keys in `.env.local` (`CLINE_API_KEY` and/or `OPENAI_API_KEY`, `PARALLEL_API_KEY`). `npm run desktop` works for both of you. |
-| 12:15–1:15 | Merge #2, #3 and #4. Bots: Scene Scout on real Parallel search. |
+| By 12:15 | Keys in `.env.local` (`CLINE_API_KEY` and/or `OPENAI_API_KEY`, `PARALLEL_API_KEY`). The Electron app runs for both of you. |
+| 12:15–1:15 | Land the Electron port with Sprout and Daily in it. Bots: Scene Scout on real Parallel search. |
 | 1:15–2:00 | Bots: model picks and writes the bubbles, Approve → `.ics`. Daily: polish the storyboard and Sprout moods. |
 | 2:00–2:40 | Third Place. Full path: Sprout → storyboard → hand-off → Calendar. |
 | 2:40–3:00 | Record a backup video and save the fallback search results. Composio stretch only if everything is green. |

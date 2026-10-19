@@ -1,21 +1,19 @@
 # Nomi
 
-Nomi is an open-source desktop companion. Sprout, a little pet on your screen, hears about your day, Nomi shows which people, places and communities push you toward your goals, and Nomi bots go out on the live web to put the right rooms on your calendar.
+Nomi is an open-source personal agent that reads your day, sees which people, places and communities push you toward your goals, and then goes out on the live web and into your inbox to rebuild that environment for you.
 
-- **Nomi Daily**: tell Sprout about your day (type or talk) and get a magazine-style storyboard with green, amber and red goal frames, plus analysis across a period.
+- **Nomi Daily**: tell the Nomi pet about your day and get a magazine-style storyboard with green, amber and red goal frames.
 - **Nomi Bots**: friends that act. Parallel finds events, people and spaces, an open-source model decides, and after you approve it holds the time in Apple Calendar. Composio host emails come next.
 
-Built with [Cline](https://cline.bot) (it built the app and its API serves the model, with Kimi K3 as the open-weight option), [Parallel](https://docs.parallel.ai), and Composio next, for the Cline x Composio x Parallel Open Source AI Week hackathon.
+Built with [Cline](https://cline.bot), [Parallel](https://docs.parallel.ai) and an open-source model (Composio next), for the Cline x Composio x Parallel Open Source AI Week hackathon.
 
 ## Run it
 
 ```bash
 npm install
 cp .env.example .env.local   # optional: without keys everything runs on mock data
-npm run desktop              # desktop app with Sprout always on top (or `npm run dev` for the browser)
+npm run dev
 ```
-
-Models: set `CLINE_API_KEY` and/or `OPENAI_API_KEY`. `LLM_PROVIDER` picks which goes first, the other is the fallback, then mocks.
 
 ## Layout
 
