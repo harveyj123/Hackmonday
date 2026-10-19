@@ -11,19 +11,22 @@ export type SearchResult = { url: string; title: string | null; publish_date: st
 export async function search(
   objective: string,
   queries: string[],
-  opts: { maxResults?: number; includeDomains?: string[] } = {},
+  opts: { maxResults?: number; includeDomains?: string[]; afterDate?: string; timeoutMs?: number } = {},
 ): Promise<SearchResult[] | null> {
   if (!parallelConfigured()) return null;
   const res = await fetch("https://api.parallel.ai/v1/search", {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": process.env.PARALLEL_API_KEY! },
+    signal: AbortSignal.timeout(opts.timeoutMs ?? 9000), // stage-safe: fall back rather than hang
     body: JSON.stringify({
       objective,
       search_queries: queries, // 2 to 3 keyword queries of 3 to 6 words work best
       mode: "fast",
       advanced_settings: {
         max_results: opts.maxResults ?? 5,
-        ...(opts.includeDomains ? { source_policy: { include_domains: opts.includeDomains } } : {}),
+        ...(opts.includeDomains || opts.afterDate
+          ? { source_policy: { ...(opts.includeDomains ? { include_domains: opts.includeDomains } : {}), ...(opts.afterDate ? { after_date: opts.afterDate } : {}) } }
+          : {}),
       },
     }),
   });
@@ -32,7 +35,7 @@ export async function search(
   return data.results;
 }
 
-// Event sites for Scene Scout, e.g. search(objective, queries, { includeDomains: EVENT_DOMAINS }).
+// Event sites for the bots' event scouting, e.g. search(objective, queries, { includeDomains: EVENT_DOMAINS }).
 export const EVENT_DOMAINS = ["lu.ma", "luma.com", "partiful.com", "meetup.com", "eventbrite.com"];
 
 // TODO(bots): findAll(criteria) for "events matching my goal", task(input, schema) to enrich one hit.

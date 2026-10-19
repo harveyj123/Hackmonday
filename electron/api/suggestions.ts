@@ -6,6 +6,7 @@ import { AGENT_MATCHES, type MatchIntent } from "@/data/agent-matches";
 import { chat } from "@/lib/llm";
 import { EVENT_DOMAINS, parallelConfigured, search, type SearchResult } from "@/lib/parallel";
 import type { BotId, NomiMemory, SharedMemory, Suggestion, SuggestionsRequest, SuggestionsResponse } from "@/lib/types";
+import { cached, saveCached, withTimeout } from "./live";
 import { memoryPrompt, readMemory, updateMemory } from "./memory";
 
 const LANE: Record<BotId, { intents: MatchIntent[]; hint: string }> = {
@@ -14,8 +15,11 @@ const LANE: Record<BotId, { intents: MatchIntent[]; hint: string }> = {
   "social-hobbies": { intents: ["community", "event"], hint: "social club hobby meetup weekend" },
 };
 
-const CACHE_MS = 15 * 60_000;
-const cache = new Map<string, { at: number; list: Suggestion[] }>();
+// Re-scout at most every 15 minutes, or sooner when the goals move. In between, and while a scout runs,
+// serve the last good list (kept on disk across launches) so the demo never waits on the network.
+const FRESH_MS = 15 * 60_000;
+type Entry = { at: number; sig: string; list: Suggestion[] };
+const inflight = new Map<BotId, Promise<Suggestion[]>>();
 
 function place(mem: SharedMemory) {
   return mem.items.findLast((m) => m.kind === "place")?.text.split("(")[0].trim() || "San Francisco";
@@ -49,14 +53,14 @@ async function scout(botId: BotId, mem: SharedMemory): Promise<Suggestion[]> {
     (await search(
       `Upcoming events, recurring communities or groups in ${city} in the next two weeks for someone whose goal is: ${goals.join("; ") || bot.tagline}`,
       [`${LANE[botId].hint} ${city}`, `${goals[0] ?? bot.name} ${city} events`],
-      { maxResults: 6, includeDomains: EVENT_DOMAINS },
+      { maxResults: 6, includeDomains: EVENT_DOMAINS, afterDate: new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10) },
     ).catch((e) => {
       console.warn("[suggestions] parallel failed", e);
       return null;
     })) ?? [];
   if (!results.length) return [];
 
-  const out = await chat(
+  const out = await withTimeout(chat(
     [
       {
         role: "system",
@@ -67,7 +71,7 @@ Return JSON {"picks":[{"index": number, "title": "short name", "why": "one frien
       { role: "user", content: results.map((r, i) => `${i}. ${r.title ?? "Untitled"} (${r.url}): ${r.excerpts[0]?.slice(0, 300) ?? ""}`).join("\n") },
     ],
     { json: true },
-  ).catch(() => null);
+  ), 15_000, `${bot.name} scout`);
 
   type Pick = { index: number; title?: string; why?: string; when?: string; where?: string };
   let picks: Pick[] = [];
@@ -97,15 +101,32 @@ Return JSON {"picks":[{"index": number, "title": "short name", "why": "one frien
     });
 }
 
+function goalsSig(botId: BotId, mem: SharedMemory) {
+  return mem.goals.filter((g) => g.botId === botId).map((g) => `${g.title}:${Math.round(g.progress * 10)}`).join("|");
+}
+
+function rescout(botId: BotId, mem: SharedMemory, sig: string): Promise<Suggestion[]> {
+  const running = inflight.get(botId);
+  if (running) return running;
+  const work = (async () => {
+    const live = parallelConfigured() ? await scout(botId, mem) : [];
+    if (live.length) saveCached(`scout:${botId}`, { at: Date.now(), sig, list: live } satisfies Entry);
+    return live;
+  })().finally(() => inflight.delete(botId));
+  inflight.set(botId, work);
+  return work;
+}
+
 export async function suggestionsFor(botId: BotId): Promise<Suggestion[]> {
   const mem = readMemory();
-  const key = `${botId}:${mem.updatedAt}`;
-  const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < CACHE_MS) return hit.list;
-  const live = parallelConfigured() ? await scout(botId, mem) : [];
-  const list = live.length ? live : curated(botId, mem);
-  cache.set(key, { at: Date.now(), list });
-  return list;
+  const sig = goalsSig(botId, mem);
+  const last = cached<Entry>(`scout:${botId}`);
+  if (last?.list.length) {
+    if (last.sig !== sig || Date.now() - last.at > FRESH_MS) void rescout(botId, mem, sig);
+    return last.list;
+  }
+  const live = await rescout(botId, mem, sig);
+  return live.length ? live : curated(botId, mem);
 }
 
 export async function POST(req: Request) {

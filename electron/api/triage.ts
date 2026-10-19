@@ -1,6 +1,7 @@
 // Owned by Bots. The "what do you need?" box: sort a request into one bot's lane.
 import { BOTS } from "@/data/bots";
 import { chat } from "@/lib/llm";
+import { withTimeout } from "./live";
 import type { BotId, RouteRequest, RouteResponse } from "@/lib/types";
 
 const KEYWORDS: Record<BotId, RegExp> = {
@@ -19,7 +20,7 @@ export function triageByKeywords(text: string): BotId {
 export async function POST(req: Request) {
   const { text } = (await req.json()) as RouteRequest;
   const ids = BOTS.map((b) => b.id);
-  const out = await chat(
+  const out = await withTimeout(chat(
     [
       {
         role: "system",
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
       { role: "user", content: text },
     ],
     { json: true },
-  ).catch(() => null);
+  ), 6000, "routing");
 
   try {
     const parsed = out ? (JSON.parse(out) as Partial<RouteResponse>) : null;

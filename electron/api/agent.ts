@@ -4,6 +4,7 @@ import { icsLink, type CalendarEvent } from "@/lib/calendar";
 import { runApprovedAction } from "@/lib/composio";
 import { chat } from "@/lib/llm";
 import { EVENT_DOMAINS, parallelConfigured, search, type SearchResult } from "@/lib/parallel";
+import { cached, saveCached, withTimeout } from "./live";
 import { memoryPrompt, readMemory, updateMemory } from "./memory";
 import type { AgentRequest, AgentResponse, BotId, BotTask, ChatMessage, MemoryCandidate, MemoryKind, PendingAction } from "@/lib/types";
 
@@ -183,7 +184,10 @@ async function liveResults(body: AgentRequest, ask: string, intent: NonNullable<
     [ask, `${agent.searchHint} ${place}`],
     { maxResults: 4, ...(intent === "event" ? { includeDomains: EVENT_DOMAINS } : {}) },
   ).catch(() => null);
-  return results ?? [];
+  // Keep the last live hit per bot and intent, so a dropped network still shows a real card.
+  const key = `agent:${botId}:${intent}`;
+  if (results?.length) saveCached(key, results);
+  return results?.length ? results : (cached<SearchResult[]>(key) ?? []);
 }
 
 function resultMessages(results: SearchResult[]): ChatMessage[] {
@@ -398,7 +402,7 @@ export async function POST(req: Request) {
       ? `\nCURATED OFFLINE OPTIONS (cards and proposed actions will be shown after your text):\n${matches.map((match) => `- ${match.title}: ${match.subtitle}. Host: ${match.host ?? "unknown"}. People: ${match.people?.join(", ") ?? "not listed"}. Why it fits: ${match.why ?? match.message}`).join("\n")}`
       : "";
   const memoryContext = `\nSHARED MEMORY ABOUT THE USER (goals, progress, recent days from Nomi Daily, facts from every bot):\n${memoryPrompt(shared)}`;
-  const modelReply = await chat([
+  const modelReply = await withTimeout(chat([
     {
       role: "system",
       content: `You are Nomi's ${agent.name} personal assistant. Your specialty is ${agent.specialty}.
@@ -448,7 +452,7 @@ Reply format:
       role: message.role === "bot" ? "assistant" as const : "user" as const,
       content: message.text,
     })),
-  ], { json: true }).catch(() => null);
+  ], { json: true }), 12_000, `${agent.name} reply`);
 
   const normalized = modelReply ? normalizeModelReply(modelReply) : { bubbles: [], memories: [] };
   updateMemory({
