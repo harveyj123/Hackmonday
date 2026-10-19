@@ -26,7 +26,7 @@ Return JSON matching: {headline, segments: [{id, time: "HH:MM", place, people: s
         { role: "system", content: SYSTEM },
         { role: "user", content: prompt },
       ],
-      { json: true },
+      { json: true, provider: process.env.DAILY_LLM_PROVIDER },
     );
     if (out) return NextResponse.json(normalizeDay(body.date, text, JSON.parse(stripFence(out))) satisfies StoryDay);
   } catch (e) {

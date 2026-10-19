@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         { role: "system", content: SYSTEM },
         { role: "user", content: `Goals: ${body.goals.map((g) => g.text).join("; ")}\nDays:\n${digest}\nReturn JSON: {headline, insights: [...], actionItems: [{id, botId, title, context}]}` },
       ],
-      { json: true },
+      { json: true, provider: process.env.DAILY_LLM_PROVIDER },
     );
     if (out) {
       const raw = JSON.parse(out.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, ""));
