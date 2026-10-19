@@ -41,7 +41,7 @@ Estimates are rough. **Cut line:** D0–D5 + D7, then B0–B4. Everything below 
   - Acceptance: Task `lite` runs on the top 3 without delaying the reply. Results merge `output.content` and `basis` citations, set `vetted: true` and emit `vetted`. Gives up after 4 minutes. Spec success criterion 4.
   - Verify: `node scripts/discover.ts --area career … --vet` prints the cards immediately, then the vetted updates.
   - Files: `main/discovery/index.ts`, `main/discovery/normalize.ts`, `tests/discovery/vet.test.ts`
-- [ ] **D7: Adapters + hand-off to the Bots teammate** (~20 min) → **Checkpoint C3**
+- [ ] **D7: Adapters + hand-off to the Bots teammate** (~20 min) → **Checkpoint C3** (adapters done and tested Oct 19; the in-app hand-off is **pending port** and the Bots teammate)
   - Acceptance: `toInfoCard` (`InfoCard` from `lib/types.ts`) and `toCalendarEvent` (`CalendarEvent` from `lib/calendar.ts`) pass tests. The Bots teammate calls `discover()` from the main process (or over IPC) and renders live cards (**pending port**: bot-engine location). Spec success criterion 8.
   - Verify: unit tests; an in-app hand-off shows real cards.
   - Files: `main/discovery/adapters.ts`, `tests/discovery/adapters.test.ts`
