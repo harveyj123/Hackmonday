@@ -24,7 +24,7 @@ export function DailyView({ onHandoff }: { onHandoff: (item: ActionItem) => void
   }
 
   const score = day ? day.segments.reduce((n, s) => n + s.goalFit, 0) : 0;
-  const mood: PetMood = loading ? "busy" : !day ? "neutral" : score > 0 ? "happy" : score < 0 ? "sad" : "neutral";
+  const mood: PetMood = loading ? "busy" : !day ? "neutral" : score > 0 ? "happy" : score < 0 ? "worried" : "neutral";
 
   return (
     <div className="flex gap-6">
