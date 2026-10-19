@@ -84,8 +84,8 @@ export function BotsView({
     const sync = () => {
       try {
         const all = JSON.parse(window.localStorage.getItem(DAILY_MEMORY_KEY) ?? "[]") as NomiMemory[];
+        // Send the full set, even when empty, so Daily's "start over" clears it here too.
         const daily = all.filter((m) => m.id?.startsWith("daily-"));
-        if (!daily.length) return;
         void fetch("/api/memory", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ daily }) })
           .then((res) => res.json() as Promise<SharedMemory>)
           .then(setShared);

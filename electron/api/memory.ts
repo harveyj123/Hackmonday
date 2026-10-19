@@ -85,7 +85,13 @@ export function updateMemory(update: MemoryUpdate): SharedMemory {
 
   if (update.daily) {
     const fresh = update.daily.filter((m) => m.id.startsWith("daily-") && m.text?.trim());
+    const hadDaily = mem.items.some((m) => m.id.startsWith("daily-"));
     mem.items = [...mem.items.filter((m) => !m.id.startsWith("daily-")), ...fresh];
+    // Daily was reset ("start over"): put goal progress and the event feed back to day one too.
+    if (hadDaily && !fresh.length) {
+      mem.goals = seed().goals;
+      mem.events = [];
+    }
   }
 
   if (update.forget) mem.items = mem.items.filter((m) => m.id !== update.forget);
