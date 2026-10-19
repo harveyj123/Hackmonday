@@ -210,7 +210,17 @@ Selectors are role- and label-based (`getByRole`, `getByLabel`, `getByText`), ne
 ## Open Questions
 
 1. **Port layout (pending port):** where main-process code and the shared preload bridge live once the Electron + React port lands, and who owns them. `main/browser/` is a placeholder. See "Spec conflicts, pending port" in `tasks/plan.md`.
-2. **CDP spike:** does `connectOverCDP` see and drive pages in the Electron window reliably on the demo laptop? If not, swap in the `webContents` fallback under the same recipe interface.
+2. **CDP spike: resolved Oct 19 (B0), use CDP.** On Electron 38.8.6 with `playwright-core` 1.64, `spikes/cdp-spike.ts` did the following in under 1 s on Joey's Windows laptop:
+   - connected over CDP in about 110 ms
+   - found the window's page by `about:blank#nomi-<jobId>`
+   - opened the local fixture, filled 4 fields and saved a screenshot
+   The `webContents` fallback isn't needed. Electron's bundled Node 22.22 strips types, so `npx electron <file>.ts` runs a TypeScript ESM main with no build step.
+
+   Caveats to carry into B1/B3:
+   - The debugging port exposes every app window, including the main window and its preload, to any local process while the app runs. Keep it on `127.0.0.1`, behind `NOMI_BROWSER !== "0"`.
+   - Consider a random port per launch.
+   - Never `browser.close()` the CDP connection in the app, because that closes Electron's Chromium. Disconnect instead.
+   - Not yet checked: the same lookup with the main and Sprout windows also open (B1).
 3. **Two taps** (Get me in → Submit): is the Bots teammate fine with the `browser_action` kind and a review card in the chat?
 4. **Demo identity:** whose Luma/Meetup account signs into the Nomi browser? A dedicated demo account is safer.
 5. **Demo targets:** who creates the team Luma event (request-to-join with 2 questions) and the test contact form, and by when?

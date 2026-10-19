@@ -52,7 +52,7 @@ Estimates are rough. **Cut line:** D0–D5 + D7, then B0–B4. Everything below 
 
 ## Track B: browser-actions
 
-- [ ] **B0: CDP spike** (~20 min) → **Checkpoint C1** (with D0)
+- [x] **B0: CDP spike** (~20 min) → **Checkpoint C1** (with D0) (done Oct 19: CDP works, decision in the spec)
   - Needs first: Joey's OK on `playwright-core`.
   - Acceptance: a standalone Electron script opens a window with partition `persist:nomi-web`. Playwright `connectOverCDP` finds the page by `#nomi-<id>` and fills and screenshots a local fixture form. Decide between CDP and the `webContents` fallback and write the decision in the spec.
   - Verify: `npx electron spikes/cdp-spike.ts` saves `spikes/out.png` showing the filled form. (If Electron 38's Node won't strip types for the entry, bundle the spike with the port's build or decide at B0. `spikes/out.png` is gitignored.)

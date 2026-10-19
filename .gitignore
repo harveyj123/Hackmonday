@@ -7,3 +7,6 @@ next-env.d.ts
 
 # Discovery cache (scripts; the app uses userData)
 data/cache/
+
+# B0 spike output
+spikes/out.png
