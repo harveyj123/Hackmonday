@@ -3,6 +3,7 @@
 // and says why in a friend's voice. Sprout shows these as nudges. Without keys it serves curated picks.
 import { BOTS } from "@/data/bots";
 import { AGENT_MATCHES, type MatchIntent } from "@/data/agent-matches";
+import { mentionsPastDate } from "@/data/demo-events";
 import { chat } from "@/lib/llm";
 import { EVENT_DOMAINS, parallelConfigured, search, type SearchResult } from "@/lib/parallel";
 import type { BotId, NomiMemory, SharedMemory, Suggestion, SuggestionsRequest, SuggestionsResponse } from "@/lib/types";
@@ -57,7 +58,7 @@ async function scout(botId: BotId, mem: SharedMemory): Promise<Suggestion[]> {
     ).catch((e) => {
       console.warn("[suggestions] parallel failed", e);
       return null;
-    })) ?? [];
+    }))?.filter((r, i, all) => !mentionsPastDate(`${r.title ?? ""} ${r.excerpts.join(" ")}`) && all.findIndex((x) => x.url === r.url) === i) ?? [];
   if (!results.length) return [];
 
   const out = await withTimeout(chat(

@@ -1,5 +1,6 @@
 // Owned by Bots. One conversational turn for a Nomi goal-area agent: Parallel to find, model to decide, Apple Calendar to act.
 import { AGENT_MATCHES, detectMatchIntent, type AgentMatch } from "@/data/agent-matches";
+import { demoEvents, mentionsPastDate } from "@/data/demo-events";
 import { icsLink, type CalendarEvent } from "@/lib/calendar";
 import { runApprovedAction } from "@/lib/composio";
 import { chat } from "@/lib/llm";
@@ -186,9 +187,21 @@ async function liveResults(body: AgentRequest, ask: string, intent: NonNullable<
   ).catch(() => null);
   // Keep the last live hit per bot and intent, so a dropped network still shows a real card.
   const key = `agent:${botId}:${intent}`;
-  if (results?.length) saveCached(key, results);
-  return results?.length ? results : (cached<SearchResult[]>(key) ?? []);
+  // Only upcoming, one card per page: drop hits that name a date already past, and repeats.
+  const fresh = (results ?? []).filter(
+    (r, i, all) =>
+      !mentionsPastDate(`${r.title ?? ""} ${r.excerpts.join(" ")}`) &&
+      all.findIndex((x) => x.url === r.url || (x.title && x.title === r.title)) === i,
+  );
+  if (fresh.length) saveCached(key, fresh);
+  return fresh.length ? fresh : (cached<SearchResult[]>(key) ?? []).filter((r) => !mentionsPastDate(`${r.title ?? ""} ${r.excerpts.join(" ")}`));
 }
+
+const DEMO_LINE: Record<BotId, string> = {
+  "health-sports": "found a couple you can actually make this week. the Wednesday one is easy to just show up to 👀",
+  "career-growth": "two builder rooms this week that fit what you're going for. both small enough to actually talk to people",
+  "social-hobbies": "ok these two look fun and low-key. good ones to keep showing up to",
+};
 
 type LivePick = { index: number; title?: string; start?: string; end?: string; location?: string; why?: string };
 
@@ -431,7 +444,7 @@ export async function POST(req: Request) {
 
   const agent = AGENTS[body.botId];
   const intent = inferEnvironmentIntent(body, ask);
-  const results = await liveResults(body, ask, intent);
+  let results = await liveResults(body, ask, intent);
   const matches = !results.length && intent ? AGENT_MATCHES[body.botId][intent] : [];
   const sourceContext = results.length
     ? `\nCURRENT LIVE OPTIONS, numbered (today is ${new Date().toDateString()}; cards will be shown after your text):\n${results.map((result, i) => `${i}. ${result.title ?? "Untitled"}: ${result.excerpts.join(" ").slice(0, 600)} (${result.url})`).join("\n")}
@@ -498,11 +511,26 @@ Reply format:
   // Offline on stage: reuse the picks (with their times, so Approve still works) from the last good run.
   if (picks.length) saveCached(pickKey, picks);
   else if (results.length) picks = cached<LivePick[]>(pickKey) ?? [];
+  // A card needs a real upcoming time (so Approve makes a future invite), and no repeats.
+  const soon = Date.now() + 21 * 86_400_000;
+  picks = picks.filter((p, i, all) => {
+    const t = p.start ? new Date(p.start).getTime() : NaN;
+    return results[p.index] && t > Date.now() && t < soon && all.findIndex((x) => x.index === p.index || (x.title && x.title === p.title)) === i;
+  });
+  // Nothing good live: fall back to real upcoming SF events so the demo never shows a past or empty card.
+  const useDemo = Boolean(intent) && !picks.length;
+  if (useDemo) {
+    const demo = demoEvents(body.botId);
+    results = demo.map((e) => ({ url: e.url, title: e.title, publish_date: null, excerpts: [e.why] }) as SearchResult);
+    picks = demo.map((e, index) => ({ index, title: e.title, start: e.start, end: e.end, location: e.location, why: e.why }));
+  }
   updateMemory({
     items: normalized.memories,
     events: body.message ? [{ source: "user", kind: "request", text: body.message.slice(0, 160), botId: body.botId }] : [],
   });
-  const baseMessages: ChatMessage[] = normalized.bubbles.length
+  const baseMessages: ChatMessage[] = useDemo
+    ? [{ id: crypto.randomUUID(), role: "bot", text: DEMO_LINE[body.botId] }]
+    : normalized.bubbles.length
     ? normalized.bubbles.map((text) => ({ id: crypto.randomUUID(), role: "bot", text }))
     : results.length
       ? [{ id: crypto.randomUUID(), role: "bot", text: "ok, found a couple that fit this week 👀" }]
