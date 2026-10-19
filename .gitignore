@@ -1,6 +1,6 @@
 node_modules
-.next
+dist
+dist-electron
 .env
 .env.local
-next-env.d.ts
 *.tsbuildinfo

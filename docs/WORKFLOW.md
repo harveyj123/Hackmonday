@@ -33,6 +33,11 @@ Both routes fall back to mock data when keys are missing, so each half runs on i
 
 Copy `.env.example` to `.env.local` and fill it in on each laptop. `.env*` is gitignored. Share keys in person or by a password manager, never in the repo or a chat.
 
-## Desktop app
+## Desktop app (pure Electron, no Next.js)
 
-`npm run desktop` opens Nomi as an Electron app: the Next.js app in a main window plus Sprout, a small always-on-top pet in the bottom-right corner that opens the Daily check-in when clicked. It reuses a running `npm run dev` or starts one. Desktop-only code lives in `desktop/` (see `desktop/README.md`), so it doesn't touch `features/`.
+Nomi is an Electron app. `npm install`, then `npm run desktop` builds and opens it; `npm run dev` rebuilds on save (press Cmd+R in the window to reload; restart for `electron/` changes).
+
+- `src/` is the React renderer (Vite + Tailwind). `src/App.tsx` is the old `app/page.tsx` shell; `features/`, `components/` and `lib/types.ts` are unchanged.
+- `electron/main.ts` is the main process. It serves the renderer on `app://nomi` and answers `fetch("/api/...")` itself, so feature code calls the API exactly as before and keys from `.env.local` stay in the main process.
+- API routes moved from `app/api/*/route.ts` to `electron/api/*.ts` (same `POST(req)` / `GET(req)` handlers, register new ones in `electron/api/router.ts`).
+- Sprout lives in its own transparent always-on-top window (`src/PetWindow.tsx`): drag it anywhere, click it to open Daily. The 🌱 tray icon reopens Daily, hides Sprout, or quits.
