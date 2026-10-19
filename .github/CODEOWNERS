@@ -1,0 +1,8 @@
+# Daily (Harvey)
+/features/daily/  @harveyj123
+/app/api/daily/   @harveyj123
+# Bots (teammate): add their GitHub handle
+# /features/bots/ @teammate
+# /app/api/agent/ @teammate
+# /lib/parallel.ts @teammate
+# /lib/composio.ts @teammate
