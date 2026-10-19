@@ -1,5 +1,5 @@
-// What the Mac knows about a day. The demo feed by default; with NOMI_MAC_CONTEXT=1 on a Mac, the day's
-// real Apple Calendar events (macOS asks for Calendar access the first time).
+// The day's Apple Calendar events. On a Mac this reads the real calendar (macOS asks once to let Nomi use
+// Calendar); elsewhere, or with NOMI_DEMO_CALENDAR=1, it serves the demo feed.
 import { execFile } from "node:child_process";
 import { demoContext, type ContextItem, type DayContext } from "@/features/daily/context";
 
@@ -29,7 +29,7 @@ function macCalendar(date: string): Promise<ContextItem[]> {
 
 export async function GET(req: Request) {
   const date = new URL(req.url).searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
-  if (process.platform === "darwin" && process.env.NOMI_MAC_CONTEXT === "1") {
+  if (process.platform === "darwin" && process.env.NOMI_DEMO_CALENDAR !== "1") {
     try {
       return Response.json({ date, source: "mac", items: await macCalendar(date) } satisfies DayContext);
     } catch (e) {

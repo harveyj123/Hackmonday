@@ -10,6 +10,7 @@ function on<T>(channel: string, fn: (arg: T) => void) {
 
 contextBridge.exposeInMainWorld("nomi", {
   movePet: (dx: number, dy: number) => ipcRenderer.send("pet:move", dx, dy),
+  openDaily: () => ipcRenderer.send("nomi:open-daily"),
   setPetView: (view: string) => ipcRenderer.send("pet:view", view),
   setPetHit: (hit: boolean) => ipcRenderer.send("pet:hit", hit),
   openBots: (item?: unknown) => ipcRenderer.send("nomi:open-bots", item ?? null),
