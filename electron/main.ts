@@ -18,6 +18,20 @@ for (const file of [".env.local", ".env"]) {
     process.loadEnvFile(path.join(ROOT, file));
   } catch {}
 }
+// Keys pasted from a masked field can carry "•" or stray spaces, and fetch then throws building the header.
+// Trim them, and drop any that still aren't plain ASCII so every route falls back cleanly; the names are kept
+// in NOMI_MALFORMED_KEYS so the app can say which key to paste again.
+const malformed: string[] = [];
+for (const [name, value] of Object.entries(process.env)) {
+  if (!/_(KEY|TOKEN)$/.test(name) || value === undefined) continue;
+  const clean = value.trim().replace(/^["']|["']$/g, "");
+  if (clean && !/^[\x21-\x7e]+$/.test(clean)) {
+    malformed.push(name);
+    delete process.env[name];
+    console.warn(`[env] ${name} has characters a key can't contain (a copied "•" mask?). Paste it again; ignoring it for now.`);
+  } else process.env[name] = clean;
+}
+if (malformed.length) process.env.NOMI_MALFORMED_KEYS = malformed.join(",");
 
 protocol.registerSchemesAsPrivileged([
   { scheme: "app", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },

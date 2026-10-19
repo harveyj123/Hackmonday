@@ -58,9 +58,13 @@ export async function POST(req: Request) {
       return Response.json({ text: await openai(audio, key) });
     } catch (e) {
       console.warn("[transcribe] OpenAI failed, trying local Whisper:", e instanceof Error ? e.message : e);
+      if (/401|invalid_api_key/.test(String(e)) && !existsSync(WHISPER_MODEL()))
+        return Response.json({ error: "OpenAI turned down the key in .env.local. Check it and restart Nomi. Type it for now." });
     }
   }
   const text = await localWhisper(audio);
   if (text !== null) return Response.json({ text });
+  if (process.env.NOMI_MALFORMED_KEYS?.split(",").includes("OPENAI_API_KEY"))
+    return Response.json({ error: "Your OpenAI key in .env.local looks malformed (it has a character like • in it). Paste it again and restart Nomi. Type it for now." });
   return Response.json({ error: "Voice needs an OpenAI key or Whisper on this Mac (npm run voice:setup). Type it for now." });
 }
