@@ -1,7 +1,7 @@
 // Owned by Bots. The "what do you need?" box: sort a request into one bot's lane.
 import { BOTS } from "@/data/bots";
-import { chat } from "@/lib/llm";
-import { withTimeout } from "./live";
+import { chat, CLINE_FAST_MODEL } from "@/lib/llm";
+import { parseJson, withTimeout } from "./live";
 import type { BotId, RouteRequest, RouteResponse } from "@/lib/types";
 
 const KEYWORDS: Record<BotId, RegExp> = {
@@ -28,11 +28,11 @@ export async function POST(req: Request) {
       },
       { role: "user", content: text },
     ],
-    { json: true },
-  ), 6000, "routing");
+    { json: true, model: CLINE_FAST_MODEL, timeoutMs: 4000 },
+  ), 7000, "routing");
 
   try {
-    const parsed = out ? (JSON.parse(out) as Partial<RouteResponse>) : null;
+    const parsed = parseJson<Partial<RouteResponse>>(out);
     if (parsed?.botId && ids.includes(parsed.botId)) {
       return Response.json({ botId: parsed.botId, reason: parsed.reason ?? "" } satisfies RouteResponse);
     }

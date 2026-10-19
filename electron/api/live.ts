@@ -49,3 +49,20 @@ export function saveCached(key: string, value: unknown) {
     console.warn("[live] could not save cache", e);
   }
 }
+
+// Models sometimes wrap JSON in a code fence or add a sentence; take the outermost object.
+export function parseJson<T>(raw: string | null): T | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    if (start < 0 || end <= start) return null;
+    try {
+      return JSON.parse(raw.slice(start, end + 1)) as T;
+    } catch {
+      return null;
+    }
+  }
+}

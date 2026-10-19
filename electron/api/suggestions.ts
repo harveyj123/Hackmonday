@@ -6,7 +6,7 @@ import { AGENT_MATCHES, type MatchIntent } from "@/data/agent-matches";
 import { chat } from "@/lib/llm";
 import { EVENT_DOMAINS, parallelConfigured, search, type SearchResult } from "@/lib/parallel";
 import type { BotId, NomiMemory, SharedMemory, Suggestion, SuggestionsRequest, SuggestionsResponse } from "@/lib/types";
-import { cached, saveCached, withTimeout } from "./live";
+import { cached, parseJson, saveCached, withTimeout } from "./live";
 import { memoryPrompt, readMemory, updateMemory } from "./memory";
 
 const LANE: Record<BotId, { intents: MatchIntent[]; hint: string }> = {
@@ -70,13 +70,13 @@ Return JSON {"picks":[{"index": number, "title": "short name", "why": "one frien
       },
       { role: "user", content: results.map((r, i) => `${i}. ${r.title ?? "Untitled"} (${r.url}): ${r.excerpts[0]?.slice(0, 300) ?? ""}`).join("\n") },
     ],
-    { json: true },
-  ), 15_000, `${bot.name} scout`);
+    { json: true, timeoutMs: 15_000 },
+  ), 25_000, `${bot.name} scout`);
 
   type Pick = { index: number; title?: string; why?: string; when?: string; where?: string };
   let picks: Pick[] = [];
   try {
-    picks = out ? ((JSON.parse(out) as { picks?: Pick[] }).picks ?? []) : [];
+    picks = parseJson<{ picks?: Pick[] }>(out)?.picks ?? [];
   } catch {
     picks = [];
   }

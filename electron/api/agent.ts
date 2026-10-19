@@ -4,7 +4,7 @@ import { icsLink, type CalendarEvent } from "@/lib/calendar";
 import { runApprovedAction } from "@/lib/composio";
 import { chat } from "@/lib/llm";
 import { EVENT_DOMAINS, parallelConfigured, search, type SearchResult } from "@/lib/parallel";
-import { cached, saveCached, withTimeout } from "./live";
+import { cached, parseJson, saveCached, withTimeout } from "./live";
 import { memoryPrompt, readMemory, updateMemory } from "./memory";
 import type { AgentRequest, AgentResponse, BotId, BotTask, ChatMessage, MemoryCandidate, MemoryKind, PendingAction } from "@/lib/types";
 
@@ -255,7 +255,8 @@ function normalizeModelReply(raw: string): { bubbles: string[]; memories: Memory
   let candidates: string[] = [];
   let memoryCandidates: MemoryCandidate[] = [];
   try {
-    const parsed = JSON.parse(raw) as { messages?: unknown; memories?: unknown };
+    const parsed = parseJson<{ messages?: unknown; memories?: unknown }>(raw);
+    if (!parsed) throw new Error("not JSON");
     if (Array.isArray(parsed.messages)) {
       candidates = parsed.messages.filter((item): item is string => typeof item === "string");
     }
@@ -452,7 +453,7 @@ Reply format:
       role: message.role === "bot" ? "assistant" as const : "user" as const,
       content: message.text,
     })),
-  ], { json: true }), 12_000, `${agent.name} reply`);
+  ], { json: true, timeoutMs: 10_000 }), 18_000, `${agent.name} reply`);
 
   const normalized = modelReply ? normalizeModelReply(modelReply) : { bubbles: [], memories: [] };
   updateMemory({
