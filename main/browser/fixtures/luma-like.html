@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Founders Night (fixture) · Luma</title>
+  <!-- Local fixture that mimics a Luma request-to-join flow for recipe tests. No network, no scripts from elsewhere.
+       States: default (signed in, not registered), ?registered (already going), ?signedout (needs login),
+       ?password and ?payment (the form asks for a password or a card number). -->
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; margin: 0; background: #faf7f2; color: #1d1b18; }
+    main { max-width: 560px; margin: 40px auto; padding: 0 16px; }
+    .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    label { display: block; margin-top: 12px; font-weight: 600; }
+    input, textarea { width: 100%; box-sizing: border-box; padding: 8px; margin-top: 4px; font: inherit; }
+    button { margin-top: 16px; padding: 10px 16px; font: inherit; border: 0; border-radius: 8px; background: #1d1b18; color: #fff; cursor: pointer; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>AI Founders Night</h1>
+    <p>Thu, Oct 22 · 6:00 PM PDT · SoMa, San Francisco</p>
+    <p>Hosted by Nomi Team · About 30 builders</p>
+
+    <section class="card" id="signedout" hidden>
+      <p>Sign in to register for this event.</p>
+      <a href="#signin">Sign in</a>
+    </section>
+
+    <section class="card" id="registered" hidden>
+      <p>You're going! We've sent the details to your email.</p>
+    </section>
+
+    <section class="card" id="cta">
+      <p>Approval required. Your registration is subject to host approval.</p>
+      <button type="button" id="open-form">Request to join</button>
+    </section>
+
+    <form class="card" id="form" hidden>
+      <label for="name">Name</label>
+      <input id="name" name="name" autocomplete="name" required>
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="email" required>
+      <label for="q1">What are you building?</label>
+      <textarea id="q1" name="q1" rows="2" required></textarea>
+      <label for="q2">Why do you want to attend?</label>
+      <textarea id="q2" name="q2" rows="2" required></textarea>
+      <button type="submit">Submit request</button>
+    </form>
+
+    <section class="card" id="pending" hidden>
+      <p>Pending approval. The host will review your request.</p>
+    </section>
+  </main>
+  <script>
+    const q = new URLSearchParams(location.search);
+    const show = (id) => document.getElementById(id).hidden = false;
+    const hide = (id) => document.getElementById(id).hidden = true;
+    if (q.has("signedout")) { hide("cta"); show("signedout"); }
+    if (q.has("registered")) { hide("cta"); show("registered"); }
+    // Guard checks: forms that ask for a password or card details must end as needs_manual.
+    const form = document.getElementById("form");
+    const extra = (html) => form.querySelector("button").insertAdjacentHTML("beforebegin", html);
+    if (q.has("password")) extra('<label for="pw">Password</label><input id="pw" name="pw" type="password">');
+    if (q.has("payment")) extra('<label for="cc">Card number</label><input id="cc" name="cc" autocomplete="cc-number">');
+    document.getElementById("open-form").addEventListener("click", () => { hide("cta"); show("form"); });
+    document.getElementById("form").addEventListener("submit", (e) => { e.preventDefault(); hide("form"); show("pending"); });
+  </script>
+</body>
+</html>

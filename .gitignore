@@ -4,3 +4,11 @@ node_modules
 .env.local
 next-env.d.ts
 *.tsbuildinfo
+
+# Discovery cache (scripts; the app uses userData)
+data/cache/
+
+# B0 spike output
+spikes/out.png
+spikes/try-review.png
+profile.local.json

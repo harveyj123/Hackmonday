@@ -1,0 +1,162 @@
+{
+  "request": {
+    "processor": "lite",
+    "input": "Event page: https://lu.ma/odsc-zylp. Context: a San Francisco AI engineer looking for rooms with other builders this week.",
+    "task_spec": {
+      "output_schema": {
+        "type": "json",
+        "json_schema": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "description": "Event title"
+            },
+            "start": {
+              "type": "string",
+              "description": "Start date-time in ISO 8601 with UTC offset, or empty if unknown"
+            },
+            "location": {
+              "type": "string",
+              "description": "Venue name and neighborhood, or empty if unknown"
+            },
+            "host_name": {
+              "type": "string",
+              "description": "Host or organizer name"
+            },
+            "who_goes": {
+              "type": "string",
+              "description": "Who usually attends, one short phrase"
+            },
+            "join_mode": {
+              "type": "string",
+              "description": "One of: rsvp, request, ticket, join_group, dropin"
+            }
+          },
+          "required": [
+            "title",
+            "start",
+            "location",
+            "host_name",
+            "who_goes",
+            "join_mode"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "runId": "trun_e7ac4ce4ff4c48829eeeabd4d4d1050f",
+  "status": 200,
+  "tookMs": 50539,
+  "response": {
+    "run": {
+      "run_id": "trun_e7ac4ce4ff4c48829eeeabd4d4d1050f",
+      "interaction_id": "trun_e7ac4ce4ff4c48829eeeabd4d4d1050f",
+      "status": "completed",
+      "is_active": false,
+      "processor": "lite",
+      "metadata": {},
+      "created_at": "2026-10-19T21:04:19.886343Z",
+      "modified_at": "2026-10-19T21:05:07.732861Z"
+    },
+    "output": {
+      "basis": [
+        {
+          "field": "who_goes",
+          "citations": [
+            {
+              "title": "The AI X Leadership Summit | San Francisco 2026 · Luma",
+              "url": "https://lu.ma/odsc-zylp",
+              "excerpts": [
+                "A dedicated space for 250 exclusive enterprise leaders to validate governance, operationalize agentic automation, and scale AI strategy under intense ROI pressure.",
+                "Peer Validation:** Validate your roadmap with 250+ VP-level leaders and practitioners in a private, non-competitive setting."
+              ]
+            }
+          ],
+          "reasoning": "The event description calls it a dedicated space for 250 exclusive enterprise leaders and says attendees can validate their roadmaps with VP-level leaders and practitioners. These statements support the attendee description.",
+          "confidence": "medium"
+        },
+        {
+          "field": "start",
+          "citations": [
+            {
+              "title": "The AI X Leadership Summit | San Francisco 2026 · Luma",
+              "url": "https://lu.ma/odsc-zylp",
+              "excerpts": [
+                "**Date:** October 27–29, 2026"
+              ]
+            }
+          ],
+          "reasoning": "The page gives the event dates as October 27–29, 2026, but does not provide a start time. The requested date-time is therefore unknown.",
+          "confidence": "medium"
+        },
+        {
+          "field": "title",
+          "citations": [
+            {
+              "title": "The AI X Leadership Summit | San Francisco 2026 · Luma",
+              "url": "https://lu.ma/odsc-zylp",
+              "excerpts": [
+                "The AI X Leadership Summit | San Francisco 2026"
+              ]
+            }
+          ],
+          "reasoning": "The page states the event title as “The AI X Leadership Summit | San Francisco 2026.”",
+          "confidence": "high"
+        },
+        {
+          "field": "join_mode",
+          "citations": [
+            {
+              "title": "The AI X Leadership Summit | San Francisco 2026 · Luma",
+              "url": "https://lu.ma/odsc-zylp",
+              "excerpts": [
+                "Please choose your desired ticket type: 2-DAY AI LEADERSHIP PASS This is in-person Pass."
+              ]
+            }
+          ],
+          "reasoning": "The page asks attendees to choose a ticket type and describes the options as in-person passes, so the join mode is ticket.",
+          "confidence": "high"
+        },
+        {
+          "field": "location",
+          "citations": [
+            {
+              "title": "The AI X Leadership Summit | San Francisco 2026 · Luma",
+              "url": "https://lu.ma/odsc-zylp",
+              "excerpts": [
+                "**Location:** Hyatt Regency | Burlingame, CA (San Francisco Bay Area)"
+              ]
+            }
+          ],
+          "reasoning": "The logistics section names Hyatt Regency in Burlingame, California, in the San Francisco Bay Area.",
+          "confidence": "high"
+        },
+        {
+          "field": "host_name",
+          "citations": [
+            {
+              "title": "The AI X Leadership Summit | San Francisco 2026 · Luma",
+              "url": "https://lu.ma/odsc-zylp",
+              "excerpts": [
+                "[Discover Events](https://luma.com/discover) Cover Image for The AI X Leadership Summit | San Francisco 2026 Cover Image for The AI X Leadership Summit | San Francisco 2026 Avatar for ODSC AI (Open Data Science Conference) Presented by [ODSC AI (Open Data Science Conference)](https://luma.com/odscai?k=c) Follow Spread awareness of open-source languages and tools within the data science and data-centric community. [](https://instagram.com/odsc) [](https://youtube.com/@OpenDataScienceCon) [](https://linkedin.com/in/open-data-science) [](https://odsc.ai/?utm_source=luma) Hosted By [ODSC AI](https://luma.com/user/odscai) [](https://instagram.com/odsc.ai) [](https://x.com/_odsc) [Ira Pidkovych](https://luma.com/user/usr-1g46qzlVXr7Im5U) [Valeria ODSC](https://luma.com/user/usr-AxTShJlmTjYFYOb) [Elen G](https://luma.com/user/usr-pBvFdhCI63QDihI) [Anna ODSC](https://luma.com/user/usr-KxAYA3qhiyIJRga) Contact the Host Report Event"
+              ]
+            }
+          ],
+          "reasoning": "The event page identifies ODSC AI as the host.",
+          "confidence": "high"
+        }
+      ],
+      "type": "json",
+      "content": {
+        "who_goes": "Enterprise AI leaders, including VP-level leaders and practitioners",
+        "start": "",
+        "title": "The AI X Leadership Summit | San Francisco 2026",
+        "join_mode": "ticket",
+        "location": "Hyatt Regency, Burlingame, CA",
+        "host_name": "ODSC AI"
+      }
+    }
+  }
+}

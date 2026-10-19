@@ -1,0 +1,54 @@
+[
+  {
+    "id": "918d629c3deaa633e5136c3dd530b5600da573fb",
+    "kind": "event",
+    "source": "luma",
+    "area": "career",
+    "title": "Step 5 Preview Launch Night & AI Founders Meetup @SF",
+    "url": "https://luma.com/12t5e4lc",
+    "start": "2026-10-22T18:00:00-07:00",
+    "host": {
+      "name": "StepFun Events"
+    },
+    "joinMode": "rsvp",
+    "whyMatch": "A launch night full of AI founders in SF, the room your goal points to.",
+    "citations": [
+      "https://luma.com/12t5e4lc"
+    ],
+    "vetted": false
+  },
+  {
+    "id": "67fd9fef58fadab07856131fb967a1c5c6dacc32",
+    "kind": "event",
+    "source": "meetup",
+    "area": "career",
+    "title": "Hackers and Founders San Francisco",
+    "url": "https://meetup.com/hackers-and-founders/events/316892062",
+    "start": "2026-10-21T18:00:00-07:00",
+    "end": "2026-10-21T22:00:00-07:00",
+    "host": {
+      "name": "Hackers/Founders",
+      "url": "https://meetup.com/hackers-and-founders"
+    },
+    "joinMode": "rsvp",
+    "whyMatch": "A long-running hackers and founders night where builders meet over drinks.",
+    "citations": [
+      "https://meetup.com/hackers-and-founders/events/316892062"
+    ],
+    "vetted": false
+  },
+  {
+    "id": "9365acf969fc296262c5374b188f5add4b6b110e",
+    "kind": "group",
+    "source": "luma",
+    "area": "career",
+    "title": "Bond AI - San Francisco and Bay Area",
+    "url": "https://luma.com/genai-sf",
+    "joinMode": "join_group",
+    "whyMatch": "Large in-person AI events community in SF; follow it for a steady stream of builder rooms.",
+    "citations": [
+      "https://luma.com/genai-sf"
+    ],
+    "vetted": false
+  }
+]

@@ -1,0 +1,102 @@
+{
+  "request": {
+    "objective": "In-person AI founder and builder events in San Francisco in the next 7 days",
+    "search_queries": [
+      "AI founders meetup San Francisco",
+      "SF AI builders event this week"
+    ],
+    "mode": "fast",
+    "advanced_settings": {
+      "source_policy": {
+        "include_domains": [
+          "luma.com",
+          "lu.ma",
+          "meetup.com"
+        ],
+        "after_date": "2026-10-19"
+      },
+      "location": "us",
+      "max_results": 8
+    }
+  },
+  "status": 200,
+  "tookMs": 1039,
+  "response": {
+    "search_id": "search_8671855f1a30c6c016d7cb28e5a0c818",
+    "results": [
+      {
+        "url": "https://www.meetup.com/find/us--ca--san-francisco/technology/",
+        "title": "Technology Events near San Francisco, CA - Meetup",
+        "publish_date": null,
+        "excerpts": [
+          "Homepage\nEnglish\nLog in Sign up\nEvents Groups\nTechnology Events near San Francisco, CA\nBuilding Products For Agents ### Building Products For Agents Wed, Oct 28 · 6:00 PM PDT by ProductTank SF 4.7 * Photo of the user * Photo of the user * Photo of the user 35 attendees\nUSF Enterprise AI Summit #2 ### USF Enterprise AI Summit #2 Fri, Oct 30 · 2:00 PM PDT by USF Data Science & Artificial Intelligence Speaker Series 4.6 * Photo of the user * Photo of the user * Photo of the user 18 attendees\nSF AI->SI Code and Coffee Sunday October 25th 2026 @Salesforce Park!\n### SF AI->SI Code and Coffee Sunday October 25th 2026 @Salesforce Park! Sun, Oct 25 · 2:00 PM PDT by San Francisco AI Code and Coffee 4.9 * Photo of the user * Photo of the user * Photo of the user 11 attendees\n[CFP OPEN] Go meetup in San Francisco | Hosted by Assembled ### [CFP OPEN] Go meetup in San Francisco | Hosted by Assembled Thu, Nov 5 · 5:30 PM PST by GoSF 4.6 * Photo of the user * Photo of the user * Photo of the user 16 attendees\nOwn Your AI: Build an Agentic AI Model Factory - in person Hack Night ### Own Your AI: Build an Agentic AI Model Factory - in person Hack Night Tue, Nov 3 · 5:00 PM PST by AI Builders and Learners SF 4.6 * Photo of the user * Photo of the user * Photo of the user 6 attendees\nFounders Running Club :: Easy 5-10km Run + Talks ### Founders Running Club :: Easy 5-10km Run + Talks Every Sat · Oct 24 · 9:30 AM PDT by Founders Running Club :: San Francisco 4.8 * Photo of the user * Photo of the user * Photo of the user 13 attendees\nHackers and Founders San Francisco ### Hackers and Founders San Francisco Wed, Oct 21 · 6:00 PM PDT by Hackers/Founders 4.6 * Photo of the user * Photo of the user * Photo of the user 21 attendees\nCoding Club ### Coding Club Every Tue, Fri · Oct 20 · 6:00 PM PDT · Online by Westside Coding Club 4.7 * Photo of the user * Photo of the user * Photo of the user 4 attendees\nOSA CON 2026: The Anti-Hype Conference for Open Source Analytics and AI ### OSA CON 2026: The Anti-Hype Conference for Open Source Analytics and AI Mon, Nov 2 · 9:30 AM PST · Hybrid by Real Time Data Lakes and AI 4.8 * Photo of the user * Photo of the user * Photo of the user 5 attendees\nAI Universal Celebration Hackathon ### AI Universal Celebration Hackathon Mon, Oct 19 · 9:30 AM PDT · Online by AI Security Engineers - San Francisco, CA 4.7 * Photo of the user * Photo of the user 4 attendees\nWaitlist Laser Cutter Safety Training ### Laser Cutter Safety Training Every Sun · Oct 25 · 2:00 PM PDT by Noisebridge Hackerspace 4.8 * Photo of the user * Photo of the user * Photo of the user 4 attendees\nDeveloping for iPhone Duo and AI Testing — Bay Area Swift ### Developing for iPhone Duo and AI Testing — Bay Area Swift Thu, Nov 12 · 6:00 PM PST by Swift Language User Group x Cocoaheads | SF & Silicon Valley 4.8 * Photo of the user * Photo of the user * Photo of the user 17 attendees"
+        ]
+      },
+      {
+        "url": "https://www.meetup.com/",
+        "title": "Meetup | Find Local Groups, Events, and Activities Near You",
+        "publish_date": null,
+        "excerpts": [
+          "New York cityscape New York cityscape ### New York New York cityscape ### New York San Francisco cityscape San Francisco cityscape ### San Francisco San Francisco cityscape ### San Francisco Chicago cityscape Chicago cityscape ### Chicago Chicago cityscape ### Chicago Nashville cityscape Nashville cityscape ### Nashville Nashville cityscape ###"
+        ]
+      },
+      {
+        "url": "https://www.meetup.com/silicon-valley-startup-founder-101/",
+        "title": "Silicon Valley Startup Founder 101 | Meetup",
+        "publish_date": null,
+        "excerpts": [
+          "Silicon Valley Startup Founder 101\nThis group hosts numerous free events throughout the year where you can learn the best practices of starting a company from people who have been there and done that.\nSilicon Valley Startup Founder 101\nYou’ll have the opportunity to meet local founders and investors, exchange ideas with experts, get feedback on your idea, participate in startup workshops, and more.\nTypical startup event topics include:\n• Coming up with a strong startup idea\n• Startup legal basics\n• How to pitch your startup\nSilicon Valley Startup Founder 101\n• Starting a company without quitting your day job\n• How to raise funding for your startup\n• And much more!\nJoin the group to be invited to our next event!\nSilicon Valley Startup Founder 101\n* [Building a Unicorn with AI Agents: From Idea to First Check ### Building a Unicorn with AI Agents: From Idea to First Check Mon, Oct 19 · 10:00 AM PDT · Online Online You have the idea. What you don't have is the money to hire a team, and no investor will write a check until you show traction.\nSilicon Valley Startup Founder 101\nJoin Adeo Ressi, Chairman of the Founder Institute, to learn how solo founders run a squad of AI agents in place of their first five hires, what investors look for in AI-native companies in 2026, and how FI companies get funded, from Founder Capital's $25K first checks to the FI Venture Network and local\nSilicon Valley Startup Founder 101\ndemo days. Register now and bring your questions for Adeo.\nSilicon Valley Startup Founder 101\n❯ What You'll Learn: + How a squad of AI agents can cover the work of your first five hires, from market research to sales outreach; + What investors look for in AI-native companies in 2026, and which signals get you a first meeting; + What a fundable AI-native company needs to show before it gets its\nSilicon Valley Startup Founder 101\nFeatured Speaker: + Adeo Ressi - Chairman @ Founder Institute - Adeo Ressi is the Chairman of the Founder Institute, the World's Largest AI-Native Company Builder, and CEO of Decile Group .\nSilicon Valley Startup Founder 101\n❯ Who Should Attend: + Solo founders who already have an idea and want to turn it into a fundable company; + Founders already building with AI tools who want to know what investors expect next; + Professionals planning to leave their job and start a company in the next year; + Aspiring founders\nSilicon Valley Startup Founder 101\nconsidering the next Founder Institute cohort. . ❯❯ This is a live, interactive online event, so be sure to RSVP at https://fi.co/e/405478/meetup to receive the Zoom URL to join us live!\nSilicon Valley Startup Founder 101\n+ Photo of the user + Photo of the user + Photo of the user 5 attendees](https://www.meetup.com/silicon-valley-startup-founder-101/events/316997971/?eventOrigin=group_upcoming_events)\nSilicon Valley Startup Founder 101\nPast events\n636\nSee all"
+        ]
+      },
+      {
+        "url": "https://lu.ma/genai-sf",
+        "title": "Bond AI - San Francisco and Bay Area · Events Calendar",
+        "publish_date": null,
+        "excerpts": [
+          "Bond AI - San Francisco and Bay Area · Events Calendar\nView and follow events from Bond AI - San Francisco and Bay Area on Luma. Bond AI - the largest in-person AI events community (150k+ members) Founders &"
+        ]
+      },
+      {
+        "url": "https://luma.com/genai-sf",
+        "title": "Bond AI - San Francisco and Bay Area · Events Calendar",
+        "publish_date": null,
+        "excerpts": [
+          "Bond AI - San Francisco and Bay Area\nBond AI - the largest in-person AI events community (150k+ members) 📢 Add your event submit.bondcommunity.ai 📤 Subscribe to the weekly events email 🌎 Explore other cities bondcommunity.ai/#join\nSubmit Event\nOctober\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\n•\nBond AI - San Francisco and Bay Area\nJoin to run our first-party events in the city you call home (SF, NY, Seattle, London, Paris, or Berlin).You'll own the event end-to-end: the concept, the logistics, and the web of speakers, judges, and sponsors.\nBond AI - San Francisco and Bay Area\nEvents\nSubmit Event\nYou have 0 events pending approval by the calendar admin.\nThey will show up on the schedule once approved\nCover Image for Universal Hackathon - Create Your Own AI Workforce | AWS Builder Loft\nUniversal Hackathon - Create Your Own AI Workforce | AWS Builder Loft\nBond AI - San Francisco and Bay Area\n​\nBy Christina Bowllan\n​\nPalo Alto, CA\n​\nParty\nCover Image for Daytona & Oracle AI Builders - SF, October 2026\nDaytona & Oracle AI Builders - SF, October 2026\n​\nBy Daytona\n​\nSoMa\n+457\nCover Image for Agents in Production: What Breaks, What Works, What You Should Know\nBond AI - San Francisco and Bay Area\n​\nBy Agentic AI Foundation & Sahar Mor (Bond AI)\n​\nSan Jose, CA\n​\n25% off with BONDAI_NA\n​\nConference / Summit\nCover Image for Open Source AI Summit SF\nOpen Source AI Summit SF\nBond AI - San Francisco and Bay Area\n​\nBy Erica Kang, NEAR Foundation, Cameron Dennis & Matt White\n​\nThe House by Edge & Node\n+216\nCover Image for Scrappy AI Founders Play Pickleball (Seed to Series A)\nScrappy AI Founders Play Pickleball (Seed to Series A)\nBond AI - San Francisco and Bay Area\n​\nBy Denis Belyavsky\n​\nTreasure Island\nCover Image for Step 5 Preview Launch Night 🚀 & AI Founders Meetup @SF\nStep 5 Preview Launch Night 🚀 & AI Founders Meetup @SF\n​\nBy StepFun & Together AI\n​\nNorth Beach\n+188\nCover Image for Beta Fund X AWS X OpenAI Multi-Model Hackathon\nBond AI - San Francisco and Bay Area\nBeta Fund X AWS X OpenAI Multi-Model Hackathon\n​\nBy Beta University, Daniel Niu, Gary Gao, AWS Builder Loft & 1 other\n​\nFinancial District\n​\nHackathon\n+320\nCover Image for Open Source AI Awards Night (Open Source AI Week)\nOpen Source AI Awards Night (Open Source AI Week)"
+        ]
+      },
+      {
+        "url": "https://luma.com/sftw",
+        "title": "San Francisco Tech Week · Events Calendar",
+        "publish_date": null,
+        "excerpts": [
+          "San Francisco Tech Week · Events Calendar\nSan Francisco Tech Week from October 5-11, 2026. Building AI Agents Parties. AI Founder + Investor Happy Hour 5:00 PM"
+        ]
+      },
+      {
+        "url": "https://luma.com/sf",
+        "title": "Popular events in San Francisco · Events Calendar",
+        "publish_date": null,
+        "excerpts": [
+          "Discover Events\nSign In\nWhat’s Happening in\nSan Francisco\nIn San Francisco, innovation pulses through tech talks, creative meetups, and more. A haven for tech, design, and creativity, the city fosters collaboration and learning, cementing its status as a vibrant hub for forward-thinkers and creators.\n​\nSubscribe\nDiscovery Icon\nSan Francisco\nSubscribe\nSan Francisco\nDiscover the hottest events in San Francisco, and get notified of new events before they sell out.\n​\nSubscribe\nEvents\nSubmit Event\nCover Image for PyTorch, Powering the Enterprise\nPyTorch, Powering the Enterprise\n​\nBy Steven Pousty, wesley chun, Carol Chen, Priya Sethuraman & 2 others\n​\nSan Pedro and Convention Center\n​\nWaitlist\nCover Image for Arm Create: Hands-on AI with Google, Renesas & Nota AI\nArm Create: Hands-on AI with Google, Renesas & Nota AI\n​\nBy Chantel Allegakoen, Katie Whiteman, Arm & Sandra Larrabee\n​\nBallbach and SOFA\n​\nWaitlist\n+117\nCover Image for Cline, Parallel, & Composio Hackathon\nCline, Parallel, & Composio Hackathon\n​\nBy Brendan O'Leary, Etisha Garg & Parallel Web Systems\n​\nMid-Market\n​\nWaitlist\n+266\nCover Image for Claude Workshop with Provectus - San Francisco\nClaude Workshop with Provectus - San Francisco\n​\nBy Build with Claude & Provectus\n​\nEmbarcadero\nCover Image for Open Source AI Week 2026 | Open Weight Debate Night\nOpen Source AI Week 2026 | Open Weight Debate Night\n​\nBy Matt White, GitHub & Open Intelligence Foundation\n​\nSouth Beach\n+492\nCover Image for THE SF DATABASE MEETUP: October\nTHE SF DATABASE MEETUP: October\n​\nBy PlanetScale, Christian Glassiognon, Sam Lambert, Erik Dunteman & 1 other\n​\nPlanetScale\n+280\nCover Image for AI agents to scale your startup\nAI agents to scale your startup\n​\nBy Founders on Tap, Selina Li & Lyvia Chapman\n​\nLower Nob Hill\n+133\nCover Image for SGLang Meetup with LinkedIn and LMCache\nSGLang Meetup with LinkedIn and LMCache\n​\nBy LMSYS Org, Qing Lan & Sundara Raman Ramachandran\n​\nLinkedIn Corporation - Building 950 (LSNR)\n​\nWaitlist\n+245\nCover Image for GTM & Marketing Hackathon by Granola x Anthropic\nGTM & Marketing Hackathon by Granola x Anthropic\n​\nBy OpenClaw, Graham McBain & Jason Storbeck\n​\nSouth Beach\n​\nSold Out\n+351\nCover Image for AI Infra Night @PyTorchCon with dstack, Crusoe, and SGLang\nAI Infra Night @PyTorchCon with dstack, Crusoe, and SGLang\n​\nBy Andrey Cheptsov, Michael YenChi Ho, Mary Lieu, Ben Walters & 1 other\n​\nBallbach and SOFA\n+292\nCover Image for Founders Panel: The Agentic Stack\nFounders Panel: The Agentic Stack\n​\nBy Laravel, WorkOS & PlanetScale\n​\nSouth Park\n​\nSold Out\nCover Image for The (Deeply Misunderstood) Evolutionary Science of Attraction"
+        ]
+      },
+      {
+        "url": "https://lu.ma/odsc-zylp",
+        "title": "The AI X Leadership Summit | San Francisco 2026",
+        "publish_date": null,
+        "excerpts": [
+          "The AI X Leadership Summit | San Francisco 2026\nThe AI X Leadership Summit | San Francisco 2026 · ​Thomas Dohmke, PhD – Co-founder & CEO, Entire · ​Babak Hodjat, PhD – SVP, Chief AI Officer, Cognizant · ​Dr. · ​"
+        ]
+      }
+    ],
+    "warnings": null,
+    "usage": [
+      {
+        "name": "sku_search",
+        "count": 1
+      }
+    ],
+    "metadata": null,
+    "session_id": "session_8671855f1a30c6c016d7cb28e5a0c818"
+  }
+}
