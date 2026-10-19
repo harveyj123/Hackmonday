@@ -9,6 +9,8 @@ import { PeriodAnalysisBox } from "./PeriodAnalysis";
 import { SEED_DAYS } from "./seed";
 import { clock, contextLines, type DayContext } from "./context";
 import { whenLabel, type Plan, type PlansResponse } from "./plans";
+import { dayDelta, healthByDay, stageOf, STAGE_LABEL, type HealthEvent } from "./health";
+import { Sprout } from "./Sprout";
 import { DEMO_GOALS } from "@/lib/goals";
 import type { ActionItem, DailyRequest } from "@/lib/types";
 import type { AnalyzeRequest, PeriodAnalysis, StoryDay } from "./types";
@@ -42,6 +44,8 @@ export function DailyPanel({
   onTab,
   plans,
   onPlans,
+  events,
+  health,
   onBusy,
   onDay,
   onBots,
@@ -52,6 +56,8 @@ export function DailyPanel({
   onTab: (t: Tab) => void;
   plans: Plan[];
   onPlans: (fn: (p: Plan[]) => Plan[]) => void;
+  events: HealthEvent[];
+  health: number;
   onBusy: (busy: boolean) => void;
   onDay: (day: StoryDay | undefined) => void;
   onBots: (item?: ActionItem) => void;
@@ -137,7 +143,7 @@ export function DailyPanel({
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
         {tab === "today" && (
           <>
-            {ctx && ctx.items.length > 0 && (
+            {ctx && ctx.items.length > 0 && !(editing || !day) && (
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-stone-500">
                   From your Mac{ctx.source === "demo" ? " · demo feed" : ""}
@@ -157,8 +163,33 @@ export function DailyPanel({
               </div>
             )}
 
-            {editing || !day ? (
-              <Composer text={text} onText={setText} onGenerate={generate} loading={loading} />
+            {ctx && (editing || !day) && ctx.items.some((i) => i.kind !== "calendar") && (
+              <div className="flex flex-wrap gap-1.5">
+                {ctx.items
+                  .filter((i) => i.kind !== "calendar")
+                  .map((i, n) => (
+                    <span key={n} className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs text-stone-600 ring-1 ring-stone-200">
+                      <span className={`h-2 w-2 ${DOT[i.kind]}`} />
+                      {i.title}
+                    </span>
+                  ))}
+                {ctx.source === "demo" && <span className="px-1 py-1 text-[11px] text-stone-400">demo feed</span>}
+              </div>
+            )}
+            {loading ? (
+              <div className="space-y-3" aria-live="polite">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">Sprout is drawing your day…</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[0, 1, 2].map((n) => (
+                    <div key={n} className="aspect-square animate-pulse rounded-xl bg-stone-200" style={{ animationDelay: `${n * 0.15}s` }} />
+                  ))}
+                </div>
+                <div className="h-5 w-3/4 animate-pulse rounded bg-stone-200" />
+                <div className="h-3 w-full animate-pulse rounded bg-stone-200" />
+                <div className="h-3 w-5/6 animate-pulse rounded bg-stone-200" />
+              </div>
+            ) : editing || !day ? (
+              <Composer text={text} onText={setText} onGenerate={generate} loading={loading} calendar={ctx?.items} />
             ) : full ? (
               <div className="animate-[fadeUp_.3s_ease-out]">
                 <button onClick={() => setFull(false)} className="mb-2 text-xs text-stone-500 hover:text-stone-900">
@@ -170,8 +201,12 @@ export function DailyPanel({
               <div className="animate-[fadeUp_.3s_ease-out] space-y-3">
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">Today's storyboard</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {day.segments.slice(0, 6).map((s) => (
-                    <div key={s.id} className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 bg-white p-1.5 text-center ${FIT[s.goalFit]}`}>
+                  {day.segments.slice(0, 6).map((s, n) => (
+                    <div
+                      key={s.id}
+                      className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 bg-white p-1.5 text-center ${FIT[s.goalFit]}`}
+                      style={{ animation: `popIn .4s cubic-bezier(.2,.9,.25,1.2) ${0.12 * n}s both` }}
+                    >
                       <span className="text-3xl">{s.emoji}</span>
                       <span className="line-clamp-2 text-[11px] leading-tight text-stone-600">{s.activity}</span>
                     </div>
@@ -179,6 +214,9 @@ export function DailyPanel({
                 </div>
                 <h2 className="font-serif text-xl leading-snug">{day.headline ?? "Your day, drawn"}</h2>
                 <p className="text-sm text-stone-600">{day.summary}</p>
+                <p className={`text-xs font-medium ${dayDelta(day) >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                  {dayDelta(day) > 0 ? `🌱 Today helped Sprout grow (+${dayDelta(day)})` : dayDelta(day) < 0 ? `🥀 Today dried Sprout out a little (${dayDelta(day)})` : "🌱 Sprout held steady today"}
+                </p>
                 {todaysPlans.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {todaysPlans.map((p) => (
@@ -215,7 +253,7 @@ export function DailyPanel({
 
         {tab === "plans" && <PlansTab plans={plans} onPlans={onPlans} onAdd={extractPlans} onPreviewNudge={onPreviewNudge} />}
 
-        {tab === "days" && <DaysTab today={day} onBots={onBots} />}
+        {tab === "days" && <DaysTab today={day} events={events} health={health} onBots={onBots} />}
       </div>
 
       <footer className="flex items-center justify-between border-t border-stone-200 px-4 py-2.5 text-xs text-stone-500">
@@ -242,7 +280,7 @@ function PlansTab({
   const [draft, setDraft] = useState("");
   const [adding, setAdding] = useState(false);
   const [missed, setMissed] = useState(false);
-  const sorted = [...plans].sort((a, b) => Number(a.status === "done") - Number(b.status === "done") || (a.date ?? "9").localeCompare(b.date ?? "9"));
+  const sorted = [...plans].sort((a, b) => Number(a.status !== "upcoming") - Number(b.status !== "upcoming") || (a.date ?? "9").localeCompare(b.date ?? "9"));
 
   async function add() {
     if (!draft.trim()) return;
@@ -287,10 +325,14 @@ function PlansTab({
       )}
       <ul className="space-y-2">
         {sorted.map((p) => (
-          <li key={p.id} className={`flex gap-3 rounded-xl border border-stone-200 bg-white p-3 ${p.status === "done" ? "opacity-50" : ""}`}>
+          <li key={p.id} className={`flex gap-3 rounded-xl border border-stone-200 bg-white p-3 ${p.status !== "upcoming" ? "opacity-60" : ""}`}>
             <span className="text-2xl leading-none">{p.emoji}</span>
             <div className="min-w-0 flex-1">
-              <p className={`text-sm font-medium ${p.status === "done" ? "line-through" : ""}`}>{p.title}</p>
+              <p className="text-sm font-medium">
+                {p.title}
+                {p.status === "done" && <span className="ml-2 text-xs font-normal text-emerald-700">✓ Went · Sprout grew</span>}
+                {p.status === "skipped" && <span className="ml-2 text-xs font-normal text-rose-600">🥀 Skipped · Sprout wilted</span>}
+              </p>
               <p className="text-xs text-stone-500">
                 {whenLabel(p)}
                 {p.from ? ` · from ${new Date(p.from + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" })}'s check-in` : ""}
@@ -320,8 +362,10 @@ function PlansTab({
   );
 }
 
-function DaysTab({ today, onBots }: { today?: StoryDay; onBots: (item?: ActionItem) => void }) {
+function DaysTab({ today, events, health, onBots }: { today?: StoryDay; events: HealthEvent[]; health: number; onBots: (item?: ActionItem) => void }) {
   const days = [...(today ? [today] : []), ...[...SEED_DAYS].sort((a, b) => b.date.localeCompare(a.date))];
+  const growth = healthByDay(days, events);
+  const byDate = Object.fromEntries(growth.map((g) => [g.date, g]));
   const [open, setOpen] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<{ result: PeriodAnalysis | null } | null>(null);
 
@@ -337,6 +381,32 @@ function DaysTab({ today, onBots }: { today?: StoryDay; onBots: (item?: ActionIt
 
   return (
     <div className="space-y-3">
+      <div className="rounded-2xl border border-stone-200 bg-gradient-to-b from-emerald-50 to-white p-3">
+        <div className="flex items-baseline justify-between">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">Sprout's growth</p>
+          <p className="text-xs text-stone-600">
+            {STAGE_LABEL[stageOf(health)]} · <span className="tabular-nums">{Math.round(health)}</span>/100
+          </p>
+        </div>
+        <div className="mt-2 flex items-end justify-between gap-1">
+          {growth.map((g) => (
+            <div key={g.date} className="flex min-w-0 flex-col items-center">
+              <Sprout mood={g.change > 0 ? "happy" : g.change < 0 ? "worried" : "neutral"} health={g.health} size={40} className="[&_*]:!animate-none" />
+              <span className={`text-[10px] font-semibold tabular-nums ${g.change > 0 ? "text-emerald-700" : g.change < 0 ? "text-rose-600" : "text-stone-400"}`}>
+                {g.change > 0 ? `+${g.change}` : g.change}
+              </span>
+              <span className="text-[10px] text-stone-500">{g.date === TODAY ? "Today" : new Date(g.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" })}</span>
+            </div>
+          ))}
+          <div className="flex min-w-0 flex-col items-center">
+            <Sprout mood="neutral" health={health} size={52} />
+            <span className="text-[10px] font-semibold text-stone-700">Now</span>
+          </div>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-200">
+          <div className="h-full rounded-full bg-emerald-500 transition-all duration-700" style={{ width: `${health}%` }} />
+        </div>
+      </div>
       {analysis ? (
         <PeriodAnalysisBox analysis={analysis.result} count={days.length} absorbing={false} onHandoff={onBots} onClose={() => setAnalysis(null)} />
       ) : (
@@ -354,6 +424,12 @@ function DaysTab({ today, onBots }: { today?: StoryDay; onBots: (item?: ActionIt
                   {d.date === TODAY ? "Today" : dt.toLocaleDateString("en-US", { weekday: "short" })}
                 </p>
                 <p className="font-serif text-2xl leading-none">{dt.getDate()}</p>
+                {byDate[d.date] && (
+                  <p className={`mt-1 text-[10px] font-semibold tabular-nums ${byDate[d.date].change >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                    {byDate[d.date].change > 0 ? "🌱+" : byDate[d.date].change < 0 ? "🥀" : "🌱"}
+                    {byDate[d.date].change || ""}
+                  </p>
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 {open === d.date ? (

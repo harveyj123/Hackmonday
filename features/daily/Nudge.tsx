@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { demoContext, freeWindow, type DayContext } from "./context";
 import type { NudgeResponse, Plan } from "./plans";
 
-export function Nudge({ plan, onGo, onTomorrow, onDismiss }: { plan: Plan; onGo: () => void; onTomorrow: () => void; onDismiss: () => void }) {
+// "On my way" grows Sprout; "Not today" skips the plan and Sprout wilts a little.
+export function Nudge({ plan, onGo, onSkip, onDismiss }: { plan: Plan; onGo: () => void; onSkip: () => void; onDismiss: () => void }) {
   const [msg, setMsg] = useState<NudgeResponse | null>(null);
   const [calendar, setCalendar] = useState("");
 
@@ -56,12 +57,13 @@ export function Nudge({ plan, onGo, onTomorrow, onDismiss }: { plan: Plan; onGo:
           {calendar}
         </p>
       )}
-      <div className="mt-3 flex gap-2">
+      <p className="mt-2 text-[11px] text-stone-400">Going helps Sprout grow. Skipping makes it wilt a little.</p>
+      <div className="mt-2 flex gap-2">
         <button onClick={onGo} className="rounded-full bg-stone-900 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-stone-700">
-          On my way
+          On my way 🌱
         </button>
-        <button onClick={onTomorrow} className="rounded-full bg-stone-100 px-3.5 py-1.5 text-sm hover:bg-stone-200">
-          Move to tomorrow
+        <button onClick={onSkip} className="rounded-full bg-stone-100 px-3.5 py-1.5 text-sm hover:bg-stone-200">
+          Not today
         </button>
       </div>
     </div>

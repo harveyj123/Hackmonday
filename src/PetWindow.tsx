@@ -2,10 +2,12 @@
 // Click to open the Daily panel beside it; on a plan's day Sprout pops a nudge on its own.
 // The main process resizes this window for each view (see "pet:view" in electron/main.ts).
 import { useEffect, useRef, useState } from "react";
-import { Sprout, SPROUT_LINES, type PetMood } from "@/features/daily/Sprout";
+import { Sprout, SPROUT_LINES, type PetMood, type SproutReaction } from "@/features/daily/Sprout";
 import { DailyPanel, loadToday, TODAY_STORE } from "@/features/daily/DailyPanel";
 import { Nudge } from "@/features/daily/Nudge";
-import { addDays, loadPlans, nudgeAt, PLANS_KEY, savePlans, type Plan } from "@/features/daily/plans";
+import { loadPlans, nudgeAt, PLANS_KEY, savePlans, type Plan } from "@/features/daily/plans";
+import { addEvent, currentHealth, HEALTH_KEY, loadEvents, PLAN_DONE, PLAN_SKIPPED, type HealthEvent } from "@/features/daily/health";
+import { SEED_DAYS } from "@/features/daily/seed";
 import type { StoryDay } from "@/features/daily/types";
 
 type View = "pet" | "panel" | "nudge";
@@ -28,6 +30,10 @@ export function PetWindow() {
   const [cheer, setCheer] = useState(false);
   const [plans, setPlansState] = useState<Plan[]>(loadPlans);
   const [nudging, setNudging] = useState<Plan | null>(null);
+  const [events, setEvents] = useState<HealthEvent[]>(loadEvents);
+  const [reaction, setReaction] = useState<SproutReaction>(null);
+  const [say, setSay] = useState<{ text: string; delta: number } | null>(null);
+  const reactTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const drag = useRef<{ x: number; y: number; moved: number } | null>(null);
   const plansRef = useRef(plans);
   plansRef.current = plans;
@@ -62,6 +68,7 @@ export function PetWindow() {
     const onStorage = (e: StorageEvent) => {
       if (e.key === TODAY_STORE) setDay(loadToday().day);
       if (e.key === PLANS_KEY) setPlansState(loadPlans());
+      if (e.key === HEALTH_KEY) setEvents(loadEvents());
     };
     window.addEventListener("storage", onStorage);
     // Click-through: only elements marked data-hit take the mouse; the rest of the window passes it on.
@@ -111,7 +118,25 @@ export function PetWindow() {
     return () => clearInterval(id);
   }, []);
 
-  const mood: PetMood = cheer ? "celebrating" : busy ? "busy" : view === "panel" && !day ? "listening" : view === "nudge" ? "happy" : moodFromDay(day);
+  // Following through on a plan grows Sprout; skipping it wilts Sprout a little.
+  function finishPlan(plan: Plan, done: boolean) {
+    const delta = done ? PLAN_DONE : PLAN_SKIPPED;
+    setPlans((all) => all.map((p) => (p.id === plan.id ? { ...p, status: done ? "done" : "skipped" } : p)));
+    setEvents(addEvent({ date: plan.date ?? plan.from, delta, reason: `${done ? "Went" : "Skipped"}: ${plan.title}`, emoji: plan.emoji, kind: done ? "plan-done" : "plan-skipped" }));
+    clearTimeout(reactTimer.current);
+    setReaction(done ? "grow" : "wilt");
+    setCheer(done);
+    setSay({ text: done ? "yay! I grew a little" : "aw, I wilted a bit. next time?", delta });
+    show("pet");
+    reactTimer.current = setTimeout(() => {
+      setReaction(null);
+      setCheer(false);
+      setSay(null);
+    }, 3200);
+  }
+
+  const health = currentHealth([...SEED_DAYS, ...(day ? [day] : [])], events);
+  const mood: PetMood = cheer ? "celebrating" : reaction === "wilt" ? "worried" : busy ? "busy" : view === "panel" && !day ? "listening" : view === "nudge" ? "happy" : moodFromDay(day);
 
   const sprout = (
     <div
@@ -148,15 +173,22 @@ export function PetWindow() {
         }
       }}
     >
-      <Sprout mood={mood} size={110} />
+      <Sprout mood={mood} size={110} health={health} reaction={reaction} />
     </div>
   );
 
   if (view === "pet") {
     return (
       <div className="flex h-screen select-none flex-col items-center justify-end pb-2">
-        <p data-hit className="mb-1 max-w-44 rounded-2xl border-2 border-stone-800 bg-white px-3 py-1.5 text-center text-xs font-medium shadow-[3px_3px_0_#292524]">
-          {SPROUT_LINES[mood]}
+        <p data-hit className="relative mb-1 max-w-44 rounded-2xl border-2 border-stone-800 bg-white px-3 py-1.5 text-center text-xs font-medium shadow-[3px_3px_0_#292524]">
+          {say?.text ?? SPROUT_LINES[mood]}
+          {say && (
+            <span
+              className={`absolute -right-3 -top-3 animate-[popIn_.3s_ease-out] rounded-full px-2 py-0.5 text-[11px] font-semibold text-white ${say.delta > 0 ? "bg-emerald-500" : "bg-rose-400"}`}
+            >
+              {say.delta > 0 ? `+${say.delta}` : `−${-say.delta}`} health
+            </span>
+          )}
         </p>
         {sprout}
       </div>
@@ -172,6 +204,8 @@ export function PetWindow() {
             onTab={setTab}
             plans={plans}
             onPlans={setPlans}
+            events={events}
+            health={health}
             onBusy={setBusy}
             onDay={setDay}
             onBots={(item) => window.nomi?.openBots(item)}
@@ -182,16 +216,8 @@ export function PetWindow() {
           nudging && (
             <Nudge
               plan={nudging}
-              onGo={() => {
-                setPlans((all) => all.map((p) => (p.id === nudging.id ? { ...p, status: "done" } : p)));
-                setCheer(true);
-                setTimeout(() => setCheer(false), 2400);
-                show("pet");
-              }}
-              onTomorrow={() => {
-                setPlans((all) => all.map((p) => (p.id === nudging.id ? { ...p, date: addDays(p.date ?? p.from, 1), nudged: false } : p)));
-                show("pet");
-              }}
+              onGo={() => finishPlan(nudging, true)}
+              onSkip={() => finishPlan(nudging, false)}
               onDismiss={() => show("pet")}
             />
           )

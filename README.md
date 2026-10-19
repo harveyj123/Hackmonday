@@ -18,6 +18,8 @@ npm run desktop   # or `npm run dev` to rebuild on save
 Nomi is a desktop app built on Electron. Sprout lives in the corner of your screen: drag it anywhere, click it to open Nomi Daily. The main window is Nomi Bots, opened from Sprout's panel, the tray or the dock.
 
 - Check-in context comes from a demo feed by default so the demo is the same every run. Set `NOMI_MAC_CONTEXT=1` to read today's real Apple Calendar events instead (macOS asks for Calendar access once).
+- Sprout has health. Going through with a plan ("On my way") makes it grow, skipping it ("Not today") makes it wilt, and each day's storyboard nudges it up or down. Days shows Sprout's growth across your days.
+- Voice check-ins record from the mic and transcribe with `OPENAI_API_KEY` (`TRANSCRIBE_MODEL`, default whisper-1). Without a key Sprout fills in a sample entry.
 - Demo shortcut: ⌘⌥⇧N (or the tray's "Demo: nudge the next plan") makes Sprout pop the reminder for your next plan right away.
 
 ## Layout
@@ -27,6 +29,7 @@ electron/main.ts        Electron main process: windows, tray, serves /api/* on a
 electron/api/daily.ts   day text + Mac context -> DayEntry (open model)
 electron/api/plans.ts   plans pulled from a check-in, and Sprout's nudge on the day
 electron/api/context.ts the day's Mac context (demo feed or Apple Calendar)
+electron/api/transcribe.ts voice check-in audio -> text
 electron/api/agent.ts   one bot turn (Parallel + open model + calendar hold)
 src/App.tsx             main window: Nomi Bots, receives storyboard hand-offs
 src/PetWindow.tsx       Sprout's always-on-top window: the pet, the Daily panel, plan nudges

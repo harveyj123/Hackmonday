@@ -6,6 +6,7 @@ import * as analyze from "./analyze";
 import * as ics from "./ics";
 import * as context from "./context";
 import * as plans from "./plans";
+import * as transcribe from "./transcribe";
 
 type Handler = (req: Request) => Promise<Response>;
 
@@ -17,6 +18,7 @@ const ROUTES: Record<string, Handler> = {
   "GET /api/context": context.GET,
   "POST /api/plans": plans.POST,
   "POST /api/plans/nudge": plans.NUDGE_POST,
+  "POST /api/transcribe": transcribe.POST,
 };
 
 export async function handleApi(req: Request): Promise<Response> {

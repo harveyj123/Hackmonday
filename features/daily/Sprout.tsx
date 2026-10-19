@@ -1,6 +1,8 @@
-// Sprout, the Nomi pet: a seedling in a pot. Leaves perk up on green days, droop on red ones,
-// and a flower blooms when a bot lands something. Plain SVG, animated by sprout.css.
+// Sprout, the Nomi pet: a seedling in a pot. Mood sets the face and leaves for the moment; health
+// (0 to 100, see health.ts) sets how well the plant is doing: wilting and brown, healthy, or in bloom.
+// A reaction plays once when health changes: "grow" when you follow through on a plan, "wilt" when you skip. Plain SVG, animated by sprout.css.
 import "./sprout.css";
+import { stageOf, type Stage } from "./health";
 
 export type PetMood = "neutral" | "listening" | "happy" | "worried" | "busy" | "celebrating";
 
@@ -166,57 +168,81 @@ function Extras({ mood }: { mood: PetMood }) {
   }
 }
 
-function Leaf({ d, angle, wilted }: { d: string; angle: number; wilted: boolean }) {
+const LEAF_COLOR: Record<Stage, string> = { wilting: "#C2AE6E", droopy: "#A9C79A", healthy: "#7BCB6B", thriving: "#5FBF57", blooming: "#5FBF57" };
+const BODY_COLOR: Record<Stage, string> = { wilting: "#E4DEC6", droopy: "#D6E3C8", healthy: "#C9EBA9", thriving: "#BFE79B", blooming: "#BFE79B" };
+// Extra droop [left, right] and leaf size by health.
+const STAGE_DROOP: Record<Stage, [number, number]> = { wilting: [-34, 34], droopy: [-14, 14], healthy: [0, 0], thriving: [5, -5], blooming: [8, -8] };
+const LEAF_SCALE: Record<Stage, number> = { wilting: 0.82, droopy: 0.92, healthy: 1, thriving: 1.1, blooming: 1.16 };
+
+export type SproutReaction = "grow" | "wilt" | null;
+
+function Leaf({ d, angle, fill, scale }: { d: string; angle: number; fill: string; scale: number }) {
   return (
-    <g transform={`rotate(${angle} 60 31)`}>
-      <path d={d} fill={wilted ? "#A9C79A" : "#7BCB6B"} stroke={INK} strokeWidth={2.5} strokeLinejoin="round" />
+    <g transform={`rotate(${angle} 60 31) translate(60 31) scale(${scale}) translate(-60 -31)`}>
+      <path d={d} fill={fill} stroke={INK} strokeWidth={2.5} strokeLinejoin="round" />
     </g>
   );
 }
 
-export function Sprout({ mood, size = 96, className = "" }: { mood: PetMood; size?: number; className?: string }) {
-  const [left, right] = LEAVES[mood];
-  const wilted = mood === "worried";
-  const cheek = CHEEKS[mood];
+function Flower({ y = 16 }: { y?: number }) {
+  return (
+    <g transform={`translate(60 ${y})`}>
+      <g className="sprout-bloom">
+        {[0, 60, 120, 180, 240, 300].map((a) => (
+          <circle key={a} cx={Math.cos((a * Math.PI) / 180) * 5} cy={Math.sin((a * Math.PI) / 180) * 5} r={4} fill="#FFC94A" stroke={INK} strokeWidth={1.4} />
+        ))}
+        <circle r={3} fill={CHEEK} stroke={INK} strokeWidth={1.4} />
+      </g>
+    </g>
+  );
+}
+
+export function Sprout({
+  mood,
+  size = 96,
+  className = "",
+  health = 60,
+  reaction = null,
+}: {
+  mood: PetMood;
+  size?: number;
+  className?: string;
+  health?: number;
+  reaction?: SproutReaction;
+}) {
+  const stage = stageOf(health);
+  const [dl, dr] = STAGE_DROOP[stage];
+  const [left, right] = LEAVES[mood].map((a, i) => a + (i ? dr : dl));
+  const leafFill = mood === "worried" && stage !== "wilting" ? LEAF_COLOR.droopy : LEAF_COLOR[stage];
+  const cheek = stage === "wilting" ? 0 : CHEEKS[mood];
+  const flower = mood === "celebrating" || stage === "blooming";
 
   return (
     <svg
-      className={`sprout sprout-${mood} ${className}`}
+      className={`sprout sprout-${mood} sprout-stage-${stage} ${reaction ? `sprout-react-${reaction}` : ""} ${className}`}
       width={size}
       height={size}
       viewBox="0 0 120 120"
       role="img"
-      aria-label={`Sprout looks ${mood}`}
+      aria-label={`Sprout looks ${mood}, health ${Math.round(health)} of 100`}
     >
       <ellipse className="sprout-shadow" cx={60} cy={112} rx={30} ry={4.5} fill="#1d1a24" opacity={0.14} />
       <g className="sprout-body">
-        {mood === "celebrating" && (
+        {flower && (
           <>
             <path {...ln} d="M60 31L60 20" />
-            <g transform="translate(60 16)">
-              <g className="sprout-bloom">
-                {[0, 60, 120, 180, 240, 300].map((a) => (
-                  <circle
-                    key={a}
-                    cx={Math.cos((a * Math.PI) / 180) * 5}
-                    cy={Math.sin((a * Math.PI) / 180) * 5}
-                    r={4}
-                    fill="#FFC94A"
-                    stroke={INK}
-                    strokeWidth={1.4}
-                  />
-                ))}
-                <circle r={3} fill={CHEEK} stroke={INK} strokeWidth={1.4} />
-              </g>
-            </g>
+            <Flower />
           </>
         )}
         <path {...ln} d="M60 40L60 30" />
         <g className="sprout-leaves">
-          <Leaf d="M60 31C52 18 38 16 30 22C36 32 50 35 60 31Z" angle={left} wilted={wilted} />
-          <Leaf d="M60 31C68 18 82 16 90 22C84 32 70 35 60 31Z" angle={right} wilted={wilted} />
+          {(stage === "thriving" || stage === "blooming") && !flower && (
+            <path d="M60 31C56 22 58 14 63 10C67 17 66 25 60 31Z" fill={leafFill} stroke={INK} strokeWidth={2.2} strokeLinejoin="round" />
+          )}
+          <Leaf d="M60 31C52 18 38 16 30 22C36 32 50 35 60 31Z" angle={left} fill={leafFill} scale={LEAF_SCALE[stage]} />
+          <Leaf d="M60 31C68 18 82 16 90 22C84 32 70 35 60 31Z" angle={right} fill={leafFill} scale={LEAF_SCALE[stage]} />
         </g>
-        <ellipse cx={60} cy={64} rx={30} ry={26} fill={wilted ? "#D6E3C8" : "#C9EBA9"} stroke={INK} strokeWidth={3} />
+        <ellipse cx={60} cy={64} rx={30} ry={26} fill={mood === "worried" && stage !== "wilting" ? BODY_COLOR.droopy : BODY_COLOR[stage]} stroke={INK} strokeWidth={3} />
         <path d="M38 58Q40 48 50 43" fill="none" stroke="#fff" strokeWidth={3.5} strokeLinecap="round" opacity={0.7} />
         {cheek > 0 && (
           <>
@@ -228,8 +254,27 @@ export function Sprout({ mood, size = 96, className = "" }: { mood: PetMood; siz
         <Mouth mood={mood} />
         <path d="M35 92L85 92L79 110L41 110Z" fill="#4AA19C" stroke={INK} strokeWidth={3} strokeLinejoin="round" />
         <rect x={30} y={83} width={60} height={10} rx={4} fill="#5FB7B2" stroke={INK} strokeWidth={3} />
+        {stage === "wilting" && (
+          <path d="M80 83C84 76 92 75 97 79C93 84 86 85 80 83Z" fill="#B08A55" stroke={INK} strokeWidth={1.8} strokeLinejoin="round" />
+        )}
       </g>
       <Extras mood={mood} />
+      {reaction === "grow" && (
+        <g>
+          <circle className="sprout-ring" cx={60} cy={64} r={34} fill="none" stroke="#5CC8A8" strokeWidth={3} />
+          <Sparkle x={20} y={30} r={6} />
+          <Sparkle x={102} y={26} r={7} />
+          <Sparkle x={96} y={70} r={4.5} />
+          <path className="sprout-rise" d="M16 74l4 -6 4 6M20 68v12" fill="none" stroke="#3FA86B" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+          <path className="sprout-rise sprout-rise-2" d="M100 50l4 -6 4 6M104 44v12" fill="none" stroke="#3FA86B" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+      )}
+      {reaction === "wilt" && (
+        <g>
+          <path className="sprout-leaf-fall" d="M86 26C90 19 98 18 103 22C99 27 92 28 86 26Z" fill="#B08A55" stroke={INK} strokeWidth={1.8} />
+          <path className="sprout-drop" d="M30 50C34 56 36 59 30 62C24 59 26 56 30 50Z" fill="#8ED1FC" stroke={INK} strokeWidth={1.8} />
+        </g>
+      )}
     </svg>
   );
 }

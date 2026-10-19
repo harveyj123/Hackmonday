@@ -10,7 +10,7 @@ export type Plan = {
   place?: string;
   why?: string; // what the person said about it, used to cheer them on
   from: string; // date of the check-in it came from
-  status: "upcoming" | "done";
+  status: "upcoming" | "done" | "skipped";
   nudged?: boolean;
 };
 
