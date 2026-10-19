@@ -20,11 +20,11 @@ Nomi is a desktop app built on Electron. Sprout lives in the corner of your scre
 - The check-in starts from today's Apple Calendar events. macOS asks once to let Nomi use Calendar. Each calendar takes about a second to search, so set `NOMI_CALENDARS="Nomi Demo"` (comma-separated) to read only those. If Calendar can't be read, Today says so rather than showing made-up events. Set `NOMI_DEMO_CALENDAR=1` to use a demo feed with the same events every run (also what you get off a Mac).
 - Sprout has health. Going through with a plan ("On my way") makes it grow, skipping it ("Not today") makes it wilt, and each day's storyboard nudges it up or down. Days shows Sprout's growth across your days.
 - Voice check-ins record from the mic and transcribe with `OPENAI_API_KEY` (`TRANSCRIBE_MODEL`, default whisper-1), or on the Mac itself with Whisper: run `npm run voice:setup` once (Homebrew's whisper-cpp plus a 140 MB English model in `~/.nomi`). With neither, Sprout asks you to type.
-- Demo shortcuts, also in the tray menu:
-  - ⌘⌥⇧N pops the reminder for your next plan right away.
-  - ⌘⌥⇧B asks the bots for a suggestion.
-  - ⌘⌥⇧D skips to the next plan's day. Today's storyboard moves into Days, Sprout says good morning, and that day's plan nudge pops so you can show On my way or Not today.
-  - ⌘⌥⇧R starts over: no check-ins, plans or health changes, back to the first day.
+- Demo controls: right-click Sprout (or use the tray menu), or press ⌥⌘ and a number with any app in front.
+  - ⌥⌘1 asks the bots for a suggestion.
+  - ⌥⌘2 skips to the next plan's day. Today's storyboard moves into Days, Sprout says good morning, and that day's plan nudge pops so you can show On my way or Not today.
+  - ⌥⌘3 pops the reminder for your next plan right away.
+  - ⌥⌘0 starts over: no check-ins, plans or health changes, back to the first day.
 
 ## Layout
 

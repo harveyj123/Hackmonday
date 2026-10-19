@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("nomi", {
   movePet: (dx: number, dy: number) => ipcRenderer.send("pet:move", dx, dy),
   openDaily: () => ipcRenderer.send("nomi:open-daily"),
   setPetView: (view: string) => ipcRenderer.send("pet:view", view),
+  showPetMenu: () => ipcRenderer.send("pet:menu"),
   setPetHit: (hit: boolean) => ipcRenderer.send("pet:hit", hit),
   openBots: (item?: unknown) => ipcRenderer.send("nomi:open-bots", item ?? null),
   onPetCommand: (fn: (cmd: string) => void) => on("nomi:pet", fn),

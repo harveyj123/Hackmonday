@@ -218,10 +218,15 @@ export function PetWindow() {
       data-hit
       tabIndex={0}
       aria-label={view === "panel" ? "Close Nomi Daily (drag to move)" : "Open Nomi Daily (drag to move)"}
-      title="Click for Nomi Daily, drag to move"
+      title="Click for Nomi Daily, drag to move, right-click for demo controls"
       className="flex-none cursor-grab active:cursor-grabbing"
+      onContextMenu={(e) => {
+        e.preventDefault();
+        window.nomi?.showPetMenu?.();
+      }}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && show(view === "panel" ? "pet" : "panel")}
       onPointerDown={(e) => {
+        if (e.button !== 0) return; // right-click opens the demo menu instead
         e.currentTarget.setPointerCapture(e.pointerId);
         drag.current = { x: e.screenX, y: e.screenY, moved: 0 };
       }}
