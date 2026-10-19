@@ -2,10 +2,11 @@
 .sprout {
   display: block;
   overflow: visible;
+  filter: drop-shadow(0 6px 7px rgba(0, 0, 0, 0.22));
 }
 .sprout-body {
   transform-box: view-box;
-  transform-origin: 60px 110px;
+  transform-origin: 60px 132px;
 }
 .sprout-shadow,
 .sprout-blink,
@@ -17,14 +18,31 @@
 }
 .sprout-leaves {
   transform-box: view-box;
-  transform-origin: 60px 31px;
+  transform-origin: 60px 46px;
+}
+/* Idle: leaves sway like the mockups. */
+.sprout-neutral .sprout-leaves,
+.sprout-listening .sprout-leaves,
+.sprout-celebrating .sprout-leaves {
+  animation: sprout-sway 3.2s ease-in-out infinite;
+}
+.sprout-stage-wilting .sprout-leaves,
+.sprout-stage-droopy .sprout-leaves {
+  animation: none;
+}
+.sprout-still,
+.sprout-still * {
+  animation: none !important;
+}
+.sprout-still {
+  filter: none;
 }
 
 .sprout-blink {
   animation: sprout-blink 4.6s infinite;
 }
 .sprout-neutral .sprout-body {
-  animation: sprout-breathe 3.4s ease-in-out infinite;
+  animation: sprout-breathe 2.6s ease-in-out infinite;
 }
 .sprout-happy .sprout-body {
   animation: sprout-hop 1.5s ease-in-out infinite;
@@ -77,12 +95,16 @@
   animation: sprout-fall 1.8s linear infinite;
 }
 
+@keyframes sprout-sway {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
 @keyframes sprout-blink {
   0%, 93%, 100% { transform: scaleY(1); }
   95.5% { transform: scaleY(0.1); }
 }
 @keyframes sprout-breathe {
-  50% { transform: scale(0.985, 1.03); }
+  50% { transform: translateY(-4px); }
 }
 @keyframes sprout-hop {
   0%, 100% { transform: none; }

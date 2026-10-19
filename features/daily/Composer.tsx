@@ -56,16 +56,21 @@ export function Composer({
   onGenerate,
   loading,
   calendar = [],
+  reading = false,
+  onRefresh,
 }: {
   text: string;
   onText: (t: string) => void;
   onGenerate: () => void;
   loading: boolean;
   calendar?: ContextItem[];
+  reading?: boolean;
+  onRefresh?: () => void;
 }) {
   const [mic, setMic] = useState<MicState>("idle");
   const [interim, setInterim] = useState("");
   const [note, setNote] = useState("");
+  const [picked, setPicked] = useState("");
   const rec = useRef<Recognition | null>(null);
   const recorder = useRef<{ stop: () => void } | null>(null);
   const base = useRef("");
@@ -159,66 +164,72 @@ export function Composer({
 
   const events = calendar.filter((i) => i.kind === "calendar");
   const label = mic === "listening" ? "Listening… tap to stop" : mic === "transcribing" ? "Writing it down…" : text ? "Tap to add more" : "Tap and tell Sprout about today";
+  const cals = [...new Set(events.map((e) => e.calendar).filter(Boolean))];
 
   return (
-    <div className="space-y-4">
-      {events.length > 0 && (
-        <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-stone-500">Your day so far · tap to start a line</p>
-          <ol className="relative space-y-1.5 border-l-2 border-dashed border-stone-300 pl-4">
-            {events.map((e, n) => (
-              <li key={n} className="relative">
-                <span className="absolute -left-[22px] top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500 ring-1 ring-red-500" />
-                <button
-                  onClick={() => append(`At ${e.title}${e.time ? ` (${clock(e.time)})` : ""}, `)}
-                  className="flex w-full items-baseline gap-2 rounded-lg px-2 py-1 text-left text-sm transition hover:bg-white"
-                >
-                  <span className="w-16 flex-none text-xs tabular-nums text-stone-400">{e.time ? clock(e.time) : ""}</span>
-                  <span className="min-w-0 truncate">{e.title}</span>
-                </button>
-              </li>
-            ))}
-          </ol>
+    <div className="flex flex-col gap-3.5">
+      {(events.length > 0 || onRefresh) && (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="nd-label">From Apple Calendar{cals.length === 1 ? ` · ${cals[0]}` : ""}</span>
+            {onRefresh && (
+              <button onClick={onRefresh} disabled={reading} className="text-[11.5px] text-[#77736c] hover:text-[#1d1c1a] disabled:opacity-60" aria-label="Refresh calendar">
+                {reading ? "Reading…" : "↻ Refresh"}
+              </button>
+            )}
+          </div>
+          {!events.length && !reading && <p className="text-[12.5px] text-[#8b877f]">Nothing on your calendar today.</p>}
+          {events.map((e, n) => (
+            <button
+              key={n}
+              onClick={() => {
+                setPicked(e.title);
+                append(`At ${e.title}${e.time ? ` (${clock(e.time)})` : ""}, `);
+              }}
+              className={`-mx-2 flex items-center gap-2.5 rounded-md border px-2 py-1 text-left text-[13px] transition ${
+                picked === e.title ? "border-[#1d1c1a] bg-white" : "border-transparent hover:bg-white"
+              }`}
+            >
+              <i className="h-2.5 w-2.5 flex-none rounded-[3px] bg-[#ff3b30]" />
+              <span className="min-w-0 truncate">{e.title}</span>
+              <em className="ml-auto flex-none text-[12px] not-italic text-[#8b877f]">{e.time ? clock(e.time) : ""}</em>
+            </button>
+          ))}
         </div>
       )}
 
-      <div className="rounded-2xl border-2 border-stone-900 bg-white p-4 shadow-[4px_4px_0_#1c1917]">
-        <p className="font-serif text-xl">How did today go?</p>
-        <div className="my-4 flex flex-col items-center gap-2">
-          <button
-            onClick={toggleMic}
-            aria-pressed={mic === "listening"}
-            aria-label={label}
-            className={`relative flex h-20 w-20 items-center justify-center rounded-full text-3xl transition ${
-              mic === "listening" ? "scale-105 bg-rose-500 text-white" : mic === "transcribing" ? "bg-amber-300" : "bg-stone-900 text-white hover:scale-105"
-            }`}
-          >
-            {mic === "listening" && (
-              <>
-                <span className="absolute inset-0 animate-ping rounded-full bg-rose-400 opacity-40" />
-                <span className="absolute -inset-2 animate-pulse rounded-full border-2 border-rose-300" />
-              </>
-            )}
-            <span className="relative">{mic === "transcribing" ? "✍️" : "🎙️"}</span>
-          </button>
-          <p className="text-sm text-stone-600">{label}</p>
-        </div>
+      <div className="nd-checkin flex flex-col gap-2.5 p-3.5">
+        {mic === "listening" ? (
+          <div className="flex items-center gap-2 text-[12.5px] text-[#b3261e]">
+            <span className="nd-wave">
+              <i />
+              <i />
+              <i />
+              <i />
+              <i />
+            </span>
+            Listening{picked ? ` · ${picked}` : ""}
+          </div>
+        ) : (
+          <p className="font-serif text-[19px]">How did today go?</p>
+        )}
         <textarea
           id="checkin-text"
-          className="h-28 w-full resize-none rounded-xl border border-stone-200 bg-stone-50 p-3 text-sm outline-none focus:border-stone-400"
+          className="h-28 w-full resize-none rounded-lg bg-[#f6f5f2] p-2.5 text-[13px] text-[#3b3a36] outline-none placeholder:text-[#8b877f] focus:ring-1 focus:ring-stone-300"
           value={text + (interim ? (text ? " " : "") + interim : "")}
           onChange={(e) => onText(e.target.value)}
           readOnly={mic === "listening"}
-          placeholder="Or type it: worked from home all morning, then the AI meetup at 6, met Priya who's building voice agents…"
+          placeholder="Tap an event, then talk or type…"
         />
-        {note && <p className="mt-1 text-xs text-stone-500">{note}</p>}
-        <button
-          onClick={onGenerate}
-          disabled={loading || !text.trim() || mic !== "idle"}
-          className="mt-3 w-full rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 disabled:opacity-40"
-        >
-          {loading ? "Sprout is drawing your day…" : "✦ Make my storyboard"}
-        </button>
+        {note && <p className="text-[11.5px] text-[#77736c]">{note}</p>}
+        <div className="flex items-center justify-between gap-2">
+          <button onClick={toggleMic} aria-pressed={mic === "listening"} aria-label={label} className={`nd-pill ${mic === "listening" ? "!bg-[#fde3e1] !text-[#b3261e]" : ""}`}>
+            {mic === "listening" ? "🎙 Stop" : mic === "transcribing" ? "✍️ Writing it down…" : "🎙 Talk"}
+          </button>
+          <button onClick={onGenerate} disabled={loading || !text.trim() || mic !== "idle"} className="nd-pill dark">
+            {loading ? "Drawing your day…" : "✦ Storyboard"}
+          </button>
+        </div>
       </div>
     </div>
   );
