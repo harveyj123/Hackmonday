@@ -9,7 +9,7 @@ export async function POST(req: Request) {
 
   const prompt = `Goals: ${body.goals.map((g) => g.text).join("; ")}
 Day: ${body.text}
-Return JSON matching: {segments: [{id, time, place, people[], activity, conversation?, mood: "great"|"good"|"meh"|"low", emoji, goalFit: -1|0|1, why}], summary, actionItems: [{id, botId: "scene-scout"|"third-place", title, context, fromSegmentId}]}`;
+Return JSON matching: {segments: [{id, time, place, people[], activity, conversation?, mood: "great"|"good"|"meh"|"low", emoji, goalFit: -1|0|1, why}], summary, actionItems: [{id, botId: "career-growth"|"health-sports"|"social-hobbies", title, context, fromSegmentId}]}. Choose the botId that best matches each action.`;
 
   const out = await chat(
     [

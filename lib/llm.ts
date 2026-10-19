@@ -1,22 +1,33 @@
-// Thin client for any OpenAI-compatible endpoint (the event's open-model credits).
-// Returns null when no key is set so callers can fall back to mocks.
+// Thin client for OpenAI or another OpenAI-compatible endpoint.
+// Returns null when no key is set so callers can fall back gracefully.
 
 type Msg = { role: "system" | "user" | "assistant"; content: string };
 
+function config() {
+  const openAIKey = process.env.OPENAI_API_KEY;
+  return {
+    baseUrl: process.env.LLM_BASE_URL || process.env.OPENAI_BASE_URL || (openAIKey ? "https://api.openai.com/v1" : ""),
+    apiKey: process.env.LLM_API_KEY || openAIKey || "",
+    model: process.env.LLM_MODEL || process.env.OPENAI_MODEL || (openAIKey ? "gpt-5-mini" : ""),
+  };
+}
+
 export function llmConfigured() {
-  return Boolean(process.env.LLM_BASE_URL && process.env.LLM_API_KEY && process.env.LLM_MODEL);
+  const { baseUrl, apiKey, model } = config();
+  return Boolean(baseUrl && apiKey && model);
 }
 
 export async function chat(messages: Msg[], opts: { json?: boolean } = {}): Promise<string | null> {
   if (!llmConfigured()) return null;
-  const res = await fetch(`${process.env.LLM_BASE_URL}/chat/completions`, {
+  const { baseUrl, apiKey, model } = config();
+  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${process.env.LLM_API_KEY}`,
+      authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: process.env.LLM_MODEL,
+      model,
       messages,
       ...(opts.json ? { response_format: { type: "json_object" } } : {}),
     }),
