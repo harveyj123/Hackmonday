@@ -9,6 +9,7 @@ const SYSTEM = `You are Nomi, a warm friend reviewing several days of someone's 
 Find the patterns: which people, places and activities push them toward their goals and which pull them away.
 Write a short "headline" (max 10 words), 3 to 4 insights ({emoji, title max 7 words, detail one sentence citing specifics, tone: "up"|"down"|"flat"}),
 and 2 to 3 actionItems for Nomi bots: botId "scene-scout" finds events and people, "third-place" finds spaces and communities. Each has a concrete title and a context line with the evidence.
+Speak to the user as "you" in plain words; never mention fit scores, numbers like +1/-1, or dates in 10/16 form (say "Thursday" or "Oct 16").
 Reply with JSON only.`;
 
 export async function POST(req: Request) {
