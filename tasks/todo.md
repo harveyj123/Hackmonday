@@ -33,7 +33,7 @@ Estimates are rough. **Cut line:** D0–D5 + D7, then B0–B4. Everything below 
   - Acceptance: `NOMI_DISCOVERY_MODE` live/cache/mock. The cache lives under userData (or `data/cache/` in scripts, gitignored). Fixtures per area exist and pass the `Opportunity` guard.
   - Verify: fixture validation test; `git status --ignored` shows the cache as ignored.
   - Files: `main/discovery/cache.ts`, `fixtures/discovery/career.json`, `fixtures/discovery/health.json`, `tests/discovery/fixtures.test.ts`, `.gitignore`
-- [ ] **D5: `discover()` + CLI** (~25 min) → **Checkpoint C2**
+- [x] **D5: `discover()` + CLI** (~25 min) → **Checkpoint C2** (done Oct 19 without a model: criteria pass, but live relevance needs a model key; rerun the career and health checks once one is in `.env.local`)
   - Acceptance: the live path runs search → dedupe → extract → rank → cache and emits `progress` events. It falls back to cache or fixtures on error and never throws on valid input. Meets spec success criteria 1, 2, 3, 5 and 6.
   - Verify: `node scripts/discover.ts --area career …` (≥ 3 results, ≤ 5 s) and `--area health` (≥ 2 results). Run again without the key and get `mode: "mock"`.
   - Files: `main/discovery/index.ts`, `scripts/discover.ts`
