@@ -21,7 +21,7 @@ Estimates are rough. **Cut line:** D0–D5 + D7, then B0–B4. Everything below 
   - Acceptance: the `Opportunity` types, `canonicalUrl`, `dedupe` and `inWindow` exist and match the spec. `lu.ma` rewrites to `luma.com`, and `utm_*` is stripped. Shared types come in via `import type` from `lib/types.ts` (pending port).
   - Verify: `node --test tests/discovery/normalize.test.ts`; `npm run typecheck`
   - Files: `main/discovery/types.ts`, `main/discovery/normalize.ts`, `tests/discovery/normalize.test.ts`, `tsconfig.json` (`allowImportingTsExtensions`, a small separate commit announced to the team)
-- [ ] **D2: Parallel client** (~25 min)
+- [x] **D2: Parallel client** (~25 min)
   - Acceptance: `search()` from `lib/parallel.ts` plus optional `afterDate` and `location` (it lacks both on `main`; wrap it here or extend it with a heads-up to the Bots teammate, who owns the file). `taskRun()` handles create, then `/result` with `timeout` and a retry on 408. `findAll()` handles create, then polls until `is_active` is false, then fetches the snapshot. All return `null` when no key is set.
   - Verify: unit tests with `fetch` stubbed by the D0 recordings; typecheck.
   - Files: `main/discovery/parallel.ts`, `tests/discovery/parallel.test.ts`
