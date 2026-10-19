@@ -10,6 +10,7 @@ import { dailyMemories, readSharedMemories, writeDailyMemories } from "@/feature
 import { loadPlans, nudgeAt, planFromFind, PLANS_KEY, savePlans, type Plan } from "@/features/daily/plans";
 import { addEvent, currentHealth, HEALTH_KEY, loadEvents, PLAN_DONE, PLAN_SKIPPED, type HealthEvent } from "@/features/daily/health";
 import { SEED_DAYS } from "@/features/daily/seed";
+import { BOTS } from "@/data/bots";
 import type { StoryDay } from "@/features/daily/types";
 
 type View = "pet" | "panel" | "nudge" | "suggest";
@@ -23,6 +24,15 @@ function moodFromDay(day?: StoryDay): PetMood {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Which bot's goal a plan counts toward: the bot that found it, else a guess from the title.
+function botFor(plan: Plan) {
+  const found = BOTS.find((b) => b.name === plan.source || b.id === plan.source);
+  if (found) return found.id;
+  if (/climb|boulder|run|gym|yoga|hike/i.test(plan.title)) return "health-sports";
+  if (/meetup|founder|demo|coffee chat|network/i.test(plan.title)) return "career-growth";
+  return undefined;
+}
 
 export function PetWindow() {
   const [view, setView] = useState<View>("pet");
@@ -147,6 +157,11 @@ export function PetWindow() {
     const delta = done ? PLAN_DONE : PLAN_SKIPPED;
     setPlans((all) => all.map((p) => (p.id === plan.id ? { ...p, status: done ? "done" : "skipped" } : p)));
     setEvents(addEvent({ date: plan.date ?? plan.from, delta, reason: `${done ? "Went" : "Skipped"}: ${plan.title}`, emoji: plan.emoji, kind: done ? "plan-done" : "plan-skipped" }));
+    // Tell the bots, so that bot's goal bar moves too. Fine to miss if the Bots side isn't there.
+    fetch("/api/memory", {
+      method: "POST",
+      body: JSON.stringify({ events: [{ at: new Date().toISOString(), source: "daily", kind: done ? "plan-done" : "plan-skipped", text: `${done ? "Went" : "Skipped"}: ${plan.title}`, botId: botFor(plan) }] }),
+    }).catch(() => {});
     clearTimeout(reactTimer.current);
     setReaction(done ? "grow" : "wilt");
     setCheer(done);
