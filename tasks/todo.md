@@ -57,7 +57,7 @@ Estimates are rough. **Cut line:** D0–D5 + D7, then B0–B4. Everything below 
   - Acceptance: a standalone Electron script opens a window with partition `persist:nomi-web`. Playwright `connectOverCDP` finds the page by `#nomi-<id>` and fills and screenshots a local fixture form. Decide between CDP and the `webContents` fallback and write the decision in the spec.
   - Verify: `npx electron spikes/cdp-spike.ts` saves `spikes/out.png` showing the filled form. (If Electron 38's Node won't strip types for the entry, bundle the spike with the port's build or decide at B0. `spikes/out.png` is gitignored.)
   - Files: `spikes/cdp-spike.ts`, `main/browser/fixtures/luma-like.html`, `.gitignore`
-- [ ] **B1: Nomi browser window + sign-in** (~20 min)
+- [ ] **B1: Nomi browser window + sign-in** (~20 min) (built Oct 19; automated check passes: marker lookup with decoy windows, luma.com/signin loads, partition cookie survives a restart. Left for Joey: sign in to Luma by hand with `npx electron spikes/signin.ts luma`, close, run it again and confirm you are still signed in)
   - Acceptance: a visible "Nomi is browsing" window with a persistent partition, sandboxed and with no preload. `signIn(site)` opens the login page, and the login survives a restart.
   - Verify: manual: sign in to Luma, restart the app, and you're still signed in.
   - Files: `main/browser/window.ts`, `main/browser/cdp.ts`
