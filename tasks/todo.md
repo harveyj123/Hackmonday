@@ -25,7 +25,7 @@ Estimates are rough. **Cut line:** D0–D5 + D7, then B0–B4. Everything below 
   - Acceptance: `search()` from `lib/parallel.ts` plus optional `afterDate` and `location` (it lacks both on `main`; wrap it here or extend it with a heads-up to the Bots teammate, who owns the file). `taskRun()` handles create, then `/result` with `timeout` and a retry on 408. `findAll()` handles create, then polls until `is_active` is false, then fetches the snapshot. All return `null` when no key is set.
   - Verify: unit tests with `fetch` stubbed by the D0 recordings; typecheck.
   - Files: `main/discovery/parallel.ts`, `tests/discovery/parallel.test.ts`
-- [ ] **D3: Queries + extract + rank** (~30 min)
+- [x] **D3: Queries + extract + rank** (~30 min)
   - Acceptance: per-area templates and domain lists from the spec table. Extraction turns Search excerpts into draft opportunities (`vetted: false`) and fills only facts present in the excerpts. Ranking writes `whyMatch` ≤ 20 words. The model function is injected (shape of `chat()` in `lib/llm.ts`; the two-sided client is pending port), with a template fallback when no model is configured.
   - Verify: tests with a stubbed model on the D0 Search recording.
   - Files: `main/discovery/queries.ts`, `main/discovery/extract.ts`, `tests/discovery/extract.test.ts`
