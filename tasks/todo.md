@@ -17,7 +17,7 @@ Estimates are rough. **Cut line:** D0–D5 + D7, then B0–B4. Everything below 
   - Acceptance: one Search (`fast`, `include_domains` luma.com/lu.ma/meetup.com, plus `after_date` and `location: "us"` to confirm the API accepts them) and one Task (`lite`, one event URL, JSON schema) succeed. Latency is printed, and the raw responses are saved. The key is loaded with `process.loadEnvFile` and never printed.
   - Verify: `node scripts/spike-parallel.ts` prints result URLs and `tookMs`. The files exist in `tests/discovery/recordings/`.
   - Files: `scripts/spike-parallel.ts`, `tests/discovery/recordings/search-career.json`, `tests/discovery/recordings/task-event.json`
-- [ ] **D1: Types + normalize** (~25 min)
+- [x] **D1: Types + normalize** (~25 min)
   - Acceptance: the `Opportunity` types, `canonicalUrl`, `dedupe` and `inWindow` exist and match the spec. `lu.ma` rewrites to `luma.com`, and `utm_*` is stripped. Shared types come in via `import type` from `lib/types.ts` (pending port).
   - Verify: `node --test tests/discovery/normalize.test.ts`; `npm run typecheck`
   - Files: `main/discovery/types.ts`, `main/discovery/normalize.ts`, `tests/discovery/normalize.test.ts`, `tsconfig.json` (`allowImportingTsExtensions`, a small separate commit announced to the team)
