@@ -34,7 +34,7 @@ export type DayEntry = {
   actionItems: ActionItem[];
 };
 
-export type BotId = "scene-scout" | "third-place";
+export type BotId = "career-growth" | "health-sports" | "social-hobbies";
 
 // The hand-off from Daily to Bots. Daily creates these; Bots consumes them.
 export type ActionItem = {
@@ -59,6 +59,10 @@ export type InfoCard = {
   imageUrl?: string;
   url?: string; // rendered as a link
   cta?: string; // link label, defaults to "View more"
+  eyebrow?: string;
+  host?: string;
+  why?: string;
+  people?: string[];
 };
 
 export type ChatMessage = {
@@ -71,7 +75,7 @@ export type ChatMessage = {
 
 export type PendingAction = {
   id: string;
-  kind: "calendar_hold" | "send_email" | "linkedin_post"; // send_email and linkedin_post come later with Composio
+  kind: "calendar_hold" | "send_email" | "send_dm" | "request_signup" | "linkedin_post";
   summary: string; // "Hold Thu 7pm for AI Founders Dinner"
   payload: Record<string, unknown>;
 };
@@ -85,6 +89,18 @@ export type BotTask = {
   milestones: { label: string; status: MilestoneStatus }[];
 };
 
+export type MemoryKind = "goal" | "person" | "community" | "place" | "preference" | "constraint" | "commitment";
+
+export type MemoryCandidate = {
+  kind: MemoryKind;
+  text: string;
+};
+
+export type NomiMemory = MemoryCandidate & {
+  id: string;
+  createdAt: string;
+};
+
 // POST /api/daily
 // context: lines Nomi read from the Mac for that day ("Calendar 6:00 PM: AI Founders Meetup").
 export type DailyRequest = { date: string; text: string; goals: Goal[]; context?: string[] };
@@ -94,8 +110,14 @@ export type DailyResponse = DayEntry;
 export type AgentRequest = {
   botId: BotId;
   history: ChatMessage[];
+  memories?: NomiMemory[];
   message?: string;
   handoff?: ActionItem;
   approve?: string; // PendingAction id the user approved
 };
-export type AgentResponse = { messages: ChatMessage[]; tasks: BotTask[]; status: string };
+export type AgentResponse = {
+  messages: ChatMessage[];
+  tasks: BotTask[];
+  status: string;
+  learnedMemories?: MemoryCandidate[];
+};

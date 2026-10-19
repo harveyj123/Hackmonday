@@ -13,6 +13,7 @@ import { dayDelta, healthByDay, stageOf, STAGE_LABEL, type HealthEvent } from ".
 import { Sprout } from "./Sprout";
 import { goalProgress } from "./memory";
 import { DEMO_GOALS } from "@/lib/goals";
+import { BOTS } from "@/data/bots";
 import type { ActionItem, DailyRequest } from "@/lib/types";
 import type { AnalyzeRequest, PeriodAnalysis, StoryDay } from "./types";
 
@@ -21,7 +22,7 @@ export const TODAY_STORE = "nomi.daily.today";
 const TODAY_LABEL = new Date(TODAY + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
 type Tab = "today" | "plans" | "days";
-const BOT_LABEL: Record<string, string> = { "scene-scout": "Scene Scout", "third-place": "Third Place" };
+const BOT_LABEL: Record<string, string> = Object.fromEntries(BOTS.map((b) => [b.id, b.name]));
 const FIT = { 1: "border-emerald-500", 0: "border-amber-400", [-1]: "border-rose-500" } as const;
 
 export function loadToday(): { text: string; day?: StoryDay } {

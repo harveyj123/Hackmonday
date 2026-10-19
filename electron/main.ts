@@ -175,6 +175,7 @@ function createTray() {
 
 ipcMain.on("pet:view", (_e, view: PetView) => PET_SIZES[view] && setPetView(view));
 ipcMain.on("pet:hit", (_e, hit: boolean) => CLICK_THROUGH && petWindow?.setIgnoreMouseEvents(!hit, { forward: true }));
+ipcMain.on("nomi:open-daily", openDaily);
 ipcMain.on("nomi:open-bots", (_e, item: unknown) => openBots(item ?? undefined));
 ipcMain.on("pet:move", (_e, dx: number, dy: number) => {
   if (!petWindow) return;

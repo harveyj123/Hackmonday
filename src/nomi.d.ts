@@ -2,6 +2,7 @@
 interface Window {
   nomi?: {
     movePet: (dx: number, dy: number) => void;
+    openDaily: () => void;
     setPetView: (view: "pet" | "panel" | "nudge" | "suggest") => void;
     setPetHit: (hit: boolean) => void;
     openBots: (item?: import("@/lib/types").ActionItem) => void;

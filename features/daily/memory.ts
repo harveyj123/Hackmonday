@@ -29,7 +29,7 @@ function measure(goal: Goal, days: StoryDay[], plans: Plan[]) {
       unit: "climbs",
       perWeek: 2,
       count: (from: string) =>
-        days.filter((d) => inRange(d.date, from)).reduce((n, d) => n + d.segments.filter((s) => CLIMB.test(`${s.activity} ${s.place}`)).length, 0) +
+        days.filter((d) => inRange(d.date, from)).reduce((n, d) => n + d.segments.filter((s) => s.goalFit !== -1 && CLIMB.test(`${s.activity} ${s.place}`)).length, 0) +
         plans.filter((p) => p.status === "done" && p.date && inRange(p.date, from) && CLIMB.test(p.title)).length,
     };
   }

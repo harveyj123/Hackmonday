@@ -8,7 +8,7 @@ const SYSTEM = `You are Nomi, a warm friend who turns someone's day into a one-p
 Split the day into 3 to 6 segments in time order. For each, score goalFit against the user's goals: 1 pushes toward them, 0 neutral, -1 pulls away.
 Keep "why" to one short line. "conversation" is a one-sentence paraphrase of anything notable someone said, or omitted.
 Write a punchy magazine "headline" (max 9 words) and a 2 to 3 sentence "summary" spoken to the user as "you".
-Add 1 to 3 actionItems: green segments with people or events go to botId "scene-scout" (find more rooms like this); red segments about places or routines go to "third-place" (find a better space or community). Link each to fromSegmentId.
+Add 1 to 3 actionItems: green segments with people or events go to botId "career-growth" (find more rooms like this); red segments about places or routines go to "social-hobbies" (find a better space or community). Link each to fromSegmentId.
 Reply with JSON only.`;
 
 export async function POST(req: Request) {
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
   const prompt = `Goals: ${body.goals.map((g) => `[${g.area}] ${g.text}`).join("; ")}
 ${body.context?.length ? `From their Mac today (use it to fill in times and places, but the entry wins): ${body.context.join("; ")}\n` : ""}Day: ${text}
-Return JSON matching: {headline, segments: [{id, time: "HH:MM", place, people: string[], activity, conversation?, mood: "great"|"good"|"meh"|"low", emoji, goalFit: -1|0|1, why}], summary, actionItems: [{id, botId: "scene-scout"|"third-place", title, context, fromSegmentId}]}`;
+Return JSON matching: {headline, segments: [{id, time: "HH:MM", place, people: string[], activity, conversation?, mood: "great"|"good"|"meh"|"low", emoji, goalFit: -1|0|1, why}], summary, actionItems: [{id, botId: "career-growth"|"social-hobbies", title, context, fromSegmentId}]}`;
 
   try {
     const out = await chat(
