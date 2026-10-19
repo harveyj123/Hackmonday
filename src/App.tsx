@@ -13,20 +13,26 @@ export default function Home() {
   useEffect(() => window.nomi?.onShowDaily(() => setMode("daily")), []);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
-      <ModeToggle mode={mode} onChange={setMode} />
-      <div className="mt-6">
-        {mode === "daily" ? (
+    <main className={mode === "bots" ? "p-4" : "mx-auto max-w-6xl px-4 py-6"}>
+      {mode === "daily" ? (
+        <>
+          <ModeToggle mode={mode} onChange={setMode} />
+          <div className="mt-6">
           <DailyView
             onHandoff={(item) => {
               setHandoff(item);
               setMode("bots");
             }}
           />
-        ) : (
-          <BotsView handoff={handoff} onHandoffConsumed={() => setHandoff(null)} />
-        )}
-      </div>
+          </div>
+        </>
+      ) : (
+        <BotsView
+          handoff={handoff}
+          onHandoffConsumed={() => setHandoff(null)}
+          onOpenDaily={() => setMode("daily")}
+        />
+      )}
     </main>
   );
 }
