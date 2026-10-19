@@ -11,6 +11,7 @@ export type Plan = {
   why?: string; // what the person said about it, used to cheer them on
   from: string; // date of the check-in it came from
   status: "upcoming" | "done" | "skipped";
+  source?: string; // the bot that found it, e.g. "Scene Scout"; Daily's own plans leave it empty
   nudged?: boolean;
 };
 
@@ -106,8 +107,33 @@ export function emojiFor(s: string) {
   if (/(climb|boulder)/.test(t)) return "🧗";
   if (/(run|gym|yoga|swim|hike)/.test(t)) return "🏃";
   if (/(dinner|lunch|brunch|eat|restaurant)/.test(t)) return "🍽️";
-  if (/(meetup|event|talk|conference|hackathon)/.test(t)) return "🎤";
+  if (/(meetup|event|talk|conference|hackathon|demo night)/.test(t)) return "🎤";
+  if (/(cowork|co-working|commons|desk)/.test(t)) return "💻";
   if (/(call|text|email|reach out|meet)/.test(t)) return "🤝";
   if (/(read|book|library)/.test(t)) return "📚";
   return "📌";
+}
+
+// A bot's find becomes a plan in Sprout, so Sprout nudges you two hours before it starts.
+export function planFromFind(find: { title: string; start?: string; location?: string; why?: string }, source: string, today: string): Plan {
+  const date = find.start ? find.start.slice(0, 10) : null;
+  const hour = find.start ? Math.max(8, Number(find.start.slice(11, 13)) - 2) : 9;
+  return {
+    id: `p${Date.now().toString(36)}`,
+    title: find.title,
+    emoji: emojiFor(`${find.title} ${find.location ?? ""}`),
+    date,
+    time: `${String(hour).padStart(2, "0")}:${find.start ? find.start.slice(14, 16) : "00"}`,
+    place: find.location,
+    why: find.why,
+    from: today,
+    status: "upcoming",
+    source,
+  };
+}
+
+// Add a plan from outside Sprout's window (a bot booking); Sprout picks it up through the storage event.
+export function addPlan(plan: Plan) {
+  const all = loadPlans().filter((p) => p.title.toLowerCase() !== plan.title.toLowerCase());
+  savePlans([...all, plan]);
 }

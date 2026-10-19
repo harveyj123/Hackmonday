@@ -3,14 +3,16 @@
 // The main process resizes this window for each view (see "pet:view" in electron/main.ts).
 import { useEffect, useRef, useState } from "react";
 import { Sprout, SPROUT_LINES, type PetMood, type SproutReaction } from "@/features/daily/Sprout";
-import { DailyPanel, loadToday, TODAY_STORE } from "@/features/daily/DailyPanel";
+import { DailyPanel, loadToday, TODAY, TODAY_STORE } from "@/features/daily/DailyPanel";
 import { Nudge } from "@/features/daily/Nudge";
-import { loadPlans, nudgeAt, PLANS_KEY, savePlans, type Plan } from "@/features/daily/plans";
+import { Suggestion, type BotSuggestion, type SuggestResponse } from "@/features/daily/Suggestion";
+import { dailyMemories, readSharedMemories, writeDailyMemories } from "@/features/daily/memory";
+import { loadPlans, nudgeAt, planFromFind, PLANS_KEY, savePlans, type Plan } from "@/features/daily/plans";
 import { addEvent, currentHealth, HEALTH_KEY, loadEvents, PLAN_DONE, PLAN_SKIPPED, type HealthEvent } from "@/features/daily/health";
 import { SEED_DAYS } from "@/features/daily/seed";
 import type { StoryDay } from "@/features/daily/types";
 
-type View = "pet" | "panel" | "nudge";
+type View = "pet" | "panel" | "nudge" | "suggest";
 type Tab = "today" | "plans" | "days";
 
 function moodFromDay(day?: StoryDay): PetMood {
@@ -34,6 +36,11 @@ export function PetWindow() {
   const [reaction, setReaction] = useState<SproutReaction>(null);
   const [say, setSay] = useState<{ text: string; delta: number } | null>(null);
   const reactTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [suggestion, setSuggestion] = useState<BotSuggestion | null>(null);
+  const pendingScout = useRef(false);
+  const passed = useRef<string[]>([]);
+  const viewRef = useRef<View>("pet");
+  viewRef.current = view;
   const drag = useRef<{ x: number; y: number; moved: number } | null>(null);
   const plansRef = useRef(plans);
   plansRef.current = plans;
@@ -48,6 +55,21 @@ export function PetWindow() {
   function show(next: View) {
     window.nomi?.setPetView(next);
     setView(next);
+  }
+
+  // Ask the bots to scout one thing from shared memory, and pop it if they found something.
+  async function scout() {
+    try {
+      const res = await fetch("/api/suggest", {
+        method: "POST",
+        body: JSON.stringify({ memories: readSharedMemories(), skip: [...passed.current, ...plansRef.current.map((p) => p.title)] }),
+      });
+      if (!res.ok) return;
+      const { suggestion: s } = (await res.json()) as SuggestResponse;
+      if (!s || viewRef.current === "panel") return;
+      setSuggestion(s);
+      show("suggest");
+    } catch {}
   }
 
   function nudge(plan: Plan) {
@@ -84,6 +106,8 @@ export function PetWindow() {
       if (cmd === "open-daily") {
         setTab("today");
         show("panel");
+      } else if (cmd === "demo-suggest") {
+        scout();
       } else if (cmd === "demo-nudge") {
         const p = nextPlan();
         if (p) nudge(p);
@@ -136,6 +160,20 @@ export function PetWindow() {
   }
 
   const health = currentHealth([...SEED_DAYS, ...(day ? [day] : [])], events);
+
+  // Keep Daily's part of the shared memory current, so every bot knows how the goals are going.
+  useEffect(() => {
+    writeDailyMemories(dailyMemories({ today: TODAY, days: [...SEED_DAYS, ...(day ? [day] : [])], plans, health }));
+  }, [day, plans, health]);
+
+  // After a check-in, once the panel closes, the bots scout something from the fresh memory.
+  useEffect(() => {
+    if (view === "pet" && pendingScout.current) {
+      pendingScout.current = false;
+      const id = setTimeout(scout, 1500);
+      return () => clearTimeout(id);
+    }
+  }, [view]);
   const mood: PetMood = cheer ? "celebrating" : reaction === "wilt" ? "worried" : busy ? "busy" : view === "panel" && !day ? "listening" : view === "nudge" ? "happy" : moodFromDay(day);
 
   const sprout = (
@@ -182,7 +220,7 @@ export function PetWindow() {
       <div className="flex h-screen select-none flex-col items-center justify-end pb-2">
         <p data-hit className="relative mb-1 max-w-44 rounded-2xl border-2 border-stone-800 bg-white px-3 py-1.5 text-center text-xs font-medium shadow-[3px_3px_0_#292524]">
           {say?.text ?? SPROUT_LINES[mood]}
-          {say && (
+          {say && say.delta !== 0 && (
             <span
               className={`absolute -right-3 -top-3 animate-[popIn_.3s_ease-out] rounded-full px-2 py-0.5 text-[11px] font-semibold text-white ${say.delta > 0 ? "bg-emerald-500" : "bg-rose-400"}`}
             >
@@ -198,7 +236,27 @@ export function PetWindow() {
   return (
     <div className="flex h-screen select-none items-end gap-1 p-2 pr-1">
       <div className={`min-w-0 flex-1 ${view === "panel" ? "h-full" : "mb-16"}`}>
-        {view === "panel" ? (
+        {view === "suggest" && suggestion && (
+          <Suggestion
+            s={suggestion}
+            onAdd={() => {
+              setPlans((all) => [...all.filter((p) => p.title !== suggestion.title), planFromFind(suggestion, suggestion.botName, TODAY)]);
+              setSay({ text: `added! I'll remind you before ${suggestion.title}`, delta: 0 });
+              clearTimeout(reactTimer.current);
+              setCheer(true);
+              reactTimer.current = setTimeout(() => {
+                setCheer(false);
+                setSay(null);
+              }, 3000);
+              show("pet");
+            }}
+            onPass={() => {
+              passed.current.push(suggestion.title);
+              show("pet");
+            }}
+          />
+        )}
+        {view === "suggest" ? null : view === "panel" ? (
           <DailyPanel
             tab={tab}
             onTab={setTab}
@@ -207,7 +265,10 @@ export function PetWindow() {
             events={events}
             health={health}
             onBusy={setBusy}
-            onDay={setDay}
+            onDay={(d) => {
+              setDay(d);
+              pendingScout.current = true;
+            }}
             onBots={(item) => window.nomi?.openBots(item)}
             onPreviewNudge={nudge}
             onClose={() => show("pet")}

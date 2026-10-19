@@ -1,12 +1,10 @@
-// What Nomi knows about a day from the Mac: Calendar events, Screen Time, Reminders.
-// The demo feed below keeps the stage demo the same every run; electron/api/context.ts swaps in the
-// real Apple Calendar when NOMI_MAC_CONTEXT=1 on a Mac.
+// What Nomi knows about a day from the Mac: its Apple Calendar events. electron/api/context.ts reads the
+// real calendar on a Mac; the demo feed below is the fallback elsewhere, or with NOMI_DEMO_CALENDAR=1.
 
 export type ContextItem = {
-  kind: "calendar" | "screentime" | "reminder";
+  kind: "calendar";
   title: string;
-  time?: string; // "HH:MM", calendar events only
-  detail?: string;
+  time?: string; // "HH:MM"
 };
 
 export type DayContext = { date: string; source: "demo" | "mac"; items: ContextItem[] };
@@ -15,8 +13,6 @@ export const DEMO_CONTEXT: Record<string, ContextItem[]> = {
   "2026-10-19": [
     { kind: "calendar", title: "Standup", time: "10:00" },
     { kind: "calendar", title: "AI Founders Meetup, SoMa", time: "18:00" },
-    { kind: "screentime", title: "5 hr in VS Code, 40 min in Messages" },
-    { kind: "reminder", title: "Book climbing gym" },
   ],
   "2026-10-22": [{ kind: "calendar", title: "Design review", time: "15:00" }],
   "2026-10-24": [{ kind: "calendar", title: "Lunch with Sam", time: "13:00" }],
@@ -33,9 +29,7 @@ export function clock(hhmm: string) {
 
 // One line for the check-in prompt, e.g. "Calendar 6:00 PM: AI Founders Meetup, SoMa".
 export function contextLines(items: ContextItem[]): string[] {
-  return items.map((i) =>
-    i.kind === "calendar" ? `Calendar ${i.time ? clock(i.time) : ""}: ${i.title}` : i.kind === "screentime" ? `Screen Time: ${i.title}` : `Reminder: ${i.title}`,
-  );
+  return items.map((i) => `Calendar ${i.time ? clock(i.time) : ""}: ${i.title}`);
 }
 
 // "free until 1:00 PM" from the first calendar event after a given time.

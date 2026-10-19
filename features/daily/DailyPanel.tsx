@@ -11,6 +11,7 @@ import { clock, contextLines, type DayContext } from "./context";
 import { whenLabel, type Plan, type PlansResponse } from "./plans";
 import { dayDelta, healthByDay, stageOf, STAGE_LABEL, type HealthEvent } from "./health";
 import { Sprout } from "./Sprout";
+import { goalProgress } from "./memory";
 import { DEMO_GOALS } from "@/lib/goals";
 import type { ActionItem, DailyRequest } from "@/lib/types";
 import type { AnalyzeRequest, PeriodAnalysis, StoryDay } from "./types";
@@ -22,8 +23,6 @@ const TODAY_LABEL = new Date(TODAY + "T12:00:00").toLocaleDateString("en-US", { 
 type Tab = "today" | "plans" | "days";
 const BOT_LABEL: Record<string, string> = { "scene-scout": "Scene Scout", "third-place": "Third Place" };
 const FIT = { 1: "border-emerald-500", 0: "border-amber-400", [-1]: "border-rose-500" } as const;
-const DOT = { calendar: "bg-red-500 rounded-sm", screentime: "bg-indigo-500 rounded-sm", reminder: "bg-orange-400 rounded-full" } as const;
-const SOURCE = { calendar: "Calendar", screentime: "Screen Time", reminder: "Reminders" } as const;
 
 export function loadToday(): { text: string; day?: StoryDay } {
   try {
@@ -146,16 +145,15 @@ export function DailyPanel({
             {ctx && ctx.items.length > 0 && !(editing || !day) && (
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-stone-500">
-                  From your Mac{ctx.source === "demo" ? " · demo feed" : ""}
+                  From your calendar{ctx.source === "demo" ? " · demo feed" : ""}
                 </p>
                 <ul className="space-y-1 text-sm">
                   {ctx.items.map((i, n) => (
                     <li key={n} className="flex items-center gap-2">
-                      <span className={`h-2.5 w-2.5 flex-none ${DOT[i.kind]}`} />
+                      <span className="h-2.5 w-2.5 flex-none rounded-sm bg-red-500" />
                       <span className="min-w-0 truncate">{i.title}</span>
                       <span className="ml-auto flex-none text-xs text-stone-400">
-                        {i.time ? `${clock(i.time)} · ` : ""}
-                        {SOURCE[i.kind]}
+                        {i.time ? clock(i.time) : ""}
                       </span>
                     </li>
                   ))}
@@ -163,19 +161,7 @@ export function DailyPanel({
               </div>
             )}
 
-            {ctx && (editing || !day) && ctx.items.some((i) => i.kind !== "calendar") && (
-              <div className="flex flex-wrap gap-1.5">
-                {ctx.items
-                  .filter((i) => i.kind !== "calendar")
-                  .map((i, n) => (
-                    <span key={n} className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs text-stone-600 ring-1 ring-stone-200">
-                      <span className={`h-2 w-2 ${DOT[i.kind]}`} />
-                      {i.title}
-                    </span>
-                  ))}
-                {ctx.source === "demo" && <span className="px-1 py-1 text-[11px] text-stone-400">demo feed</span>}
-              </div>
-            )}
+            {ctx?.source === "demo" && (editing || !day) && <p className="text-[11px] text-stone-400">Calendar: demo feed</p>}
             {loading ? (
               <div className="space-y-3" aria-live="polite">
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">Sprout is drawing your day…</p>
@@ -253,7 +239,7 @@ export function DailyPanel({
 
         {tab === "plans" && <PlansTab plans={plans} onPlans={onPlans} onAdd={extractPlans} onPreviewNudge={onPreviewNudge} />}
 
-        {tab === "days" && <DaysTab today={day} events={events} health={health} onBots={onBots} />}
+        {tab === "days" && <DaysTab today={day} plans={plans} events={events} health={health} onBots={onBots} />}
       </div>
 
       <footer className="flex items-center justify-between border-t border-stone-200 px-4 py-2.5 text-xs text-stone-500">
@@ -362,10 +348,24 @@ function PlansTab({
   );
 }
 
-function DaysTab({ today, events, health, onBots }: { today?: StoryDay; events: HealthEvent[]; health: number; onBots: (item?: ActionItem) => void }) {
+function DaysTab({
+  today,
+  plans,
+  events,
+  health,
+  onBots,
+}: {
+  today?: StoryDay;
+  plans: Plan[];
+  events: HealthEvent[];
+  health: number;
+  onBots: (item?: ActionItem) => void;
+}) {
+  const [span, setSpan] = useState<"week" | "month">("week");
   const days = [...(today ? [today] : []), ...[...SEED_DAYS].sort((a, b) => b.date.localeCompare(a.date))];
   const growth = healthByDay(days, events);
   const byDate = Object.fromEntries(growth.map((g) => [g.date, g]));
+  const progress = goalProgress(TODAY, days, plans);
   const [open, setOpen] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<{ result: PeriodAnalysis | null } | null>(null);
 
@@ -406,6 +406,45 @@ function DaysTab({ today, events, health, onBots }: { today?: StoryDay; events: 
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-200">
           <div className="h-full rounded-full bg-emerald-500 transition-all duration-700" style={{ width: `${health}%` }} />
         </div>
+      </div>
+      <div className="rounded-2xl border border-stone-200 bg-white p-3">
+        <div className="flex items-center justify-between">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">Goal progress</p>
+          <div className="flex rounded-full bg-stone-100 p-0.5 text-xs" role="group" aria-label="Progress period">
+            {(["week", "month"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSpan(s)}
+                aria-pressed={span === s}
+                className={`rounded-full px-2.5 py-0.5 capitalize ${span === s ? "bg-white font-medium shadow-sm" : "text-stone-500"}`}
+              >
+                {s === "week" ? "This week" : "This month"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <ul className="mt-2 space-y-2.5">
+          {progress.map((g) => {
+            const p = g[span];
+            return (
+              <li key={g.goal.id}>
+                <div className="flex items-baseline justify-between gap-2 text-sm">
+                  <span className="min-w-0 truncate">{g.goal.text}</span>
+                  <span className="flex-none text-xs tabular-nums text-stone-500">
+                    {p.done}/{p.target} {g.unit}
+                  </span>
+                </div>
+                <div className="mt-1 h-2 overflow-hidden rounded-full bg-stone-100">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${p.done >= p.target ? "bg-emerald-500" : "bg-amber-400"}`}
+                    style={{ width: `${Math.min(100, (p.done / p.target) * 100)}%` }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-2 text-[11px] text-stone-400">Shared with your Nomi bots, so they scout for where you are now.</p>
       </div>
       {analysis ? (
         <PeriodAnalysisBox analysis={analysis.result} count={days.length} absorbing={false} onHandoff={onBots} onClose={() => setAnalysis(null)} />

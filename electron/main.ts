@@ -84,7 +84,7 @@ function createMainWindow() {
 }
 
 // Sprout's window grows for the Daily panel and the plan nudge, keeping the pet's corner where it is.
-const PET_SIZES = { pet: { width: 220, height: 220 }, panel: { width: 560, height: 740 }, nudge: { width: 500, height: 380 } };
+const PET_SIZES = { pet: { width: 220, height: 220 }, panel: { width: 560, height: 740 }, nudge: { width: 500, height: 380 }, suggest: { width: 500, height: 420 } };
 type PetView = keyof typeof PET_SIZES;
 const CLICK_THROUGH = process.platform !== "linux";
 
@@ -144,6 +144,12 @@ function openBots(item?: unknown) {
   if (item) mainWindow!.webContents.send("nomi:handoff", item);
 }
 
+// Demo: have the bots scout something now and let Sprout pop it.
+function demoSuggest() {
+  petWindow?.show();
+  petWindow?.webContents.send("nomi:pet", "demo-suggest");
+}
+
 // Demo: jump to the next plan's day so Sprout's nudge fires on cue.
 function demoNudge() {
   petWindow?.show();
@@ -159,6 +165,7 @@ function createTray() {
       { label: "Open Nomi Daily", click: openDaily },
       { label: "Open Nomi Bots", click: () => openBots() },
       { label: "Demo: nudge the next plan (⌘⌥⇧N)", click: demoNudge },
+      { label: "Demo: a bot suggestion (⌘⌥⇧B)", click: demoSuggest },
       { label: "Show / hide Sprout", click: () => (petWindow?.isVisible() ? petWindow.hide() : petWindow?.show()) },
       { type: "separator" },
       { label: "Quit Nomi", click: () => app.quit() },
@@ -182,6 +189,7 @@ app.whenReady().then(() => {
   createTray();
   // Global so it works on stage with any app in front; Option keeps it off common app shortcuts like ⌘⇧N.
   globalShortcut.register("CommandOrControl+Alt+Shift+N", demoNudge);
+  globalShortcut.register("CommandOrControl+Alt+Shift+B", demoSuggest);
   app.on("activate", () => openBots());
 });
 
