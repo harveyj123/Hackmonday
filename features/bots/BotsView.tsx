@@ -4,9 +4,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChatThread, type ChatSession } from "./ChatThread";
 import { BOTS } from "@/data/bots";
-import type { ActionItem, Bot, BotId, RouteResponse, SharedMemory, Suggestion, SuggestionsResponse } from "@/lib/types";
+import type { ActionItem, Bot, BotId, NomiMemory, RouteResponse, SharedMemory, Suggestion, SuggestionsResponse } from "@/lib/types";
 
 const CONVERSATION_STORAGE_KEY = "nomi-agent-conversations-v6";
+const DAILY_MEMORY_KEY = "nomi-shared-memory-v4"; // features/daily/memory.ts on #7
 
 const BOT_META: Record<string, { avatar: string; preview: string; time: string; unread?: boolean }> = {
   "career-growth": {
@@ -77,6 +78,26 @@ export function BotsView({
     window.addEventListener("focus", refreshMemory);
     return () => window.removeEventListener("focus", refreshMemory);
   }, [refreshMemory]);
+
+  // Daily (in Sprout) also writes its entries to localStorage; mirror them into the shared store.
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const all = JSON.parse(window.localStorage.getItem(DAILY_MEMORY_KEY) ?? "[]") as NomiMemory[];
+        const daily = all.filter((m) => m.id?.startsWith("daily-"));
+        if (!daily.length) return;
+        void fetch("/api/memory", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ daily }) })
+          .then((res) => res.json() as Promise<SharedMemory>)
+          .then(setShared);
+      } catch {
+        // Nothing from Daily yet.
+      }
+    };
+    sync();
+    const onStorage = (e: StorageEvent) => e.key === DAILY_MEMORY_KEY && sync();
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   // Bots scout proactively from that memory.
   const memoryStamp = shared?.updatedAt;

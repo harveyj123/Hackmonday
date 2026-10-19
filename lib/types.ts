@@ -149,6 +149,7 @@ export type MemoryUpdate = {
   events?: Omit<MemoryEvent, "at">[] | MemoryEvent[];
   goals?: (Partial<GoalProgress> & { title: string })[];
   forget?: string; // NomiMemory id
+  daily?: NomiMemory[]; // Daily's own entries (ids start with "daily-"); replaces the previous set
 };
 
 // POST /api/route: the "what do you need" box picks a bot.

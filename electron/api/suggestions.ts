@@ -5,8 +5,8 @@ import { BOTS } from "@/data/bots";
 import { AGENT_MATCHES, type MatchIntent } from "@/data/agent-matches";
 import { chat } from "@/lib/llm";
 import { EVENT_DOMAINS, parallelConfigured, search, type SearchResult } from "@/lib/parallel";
-import type { BotId, SharedMemory, Suggestion, SuggestionsRequest, SuggestionsResponse } from "@/lib/types";
-import { memoryPrompt, readMemory } from "./memory";
+import type { BotId, NomiMemory, SharedMemory, Suggestion, SuggestionsRequest, SuggestionsResponse } from "@/lib/types";
+import { memoryPrompt, readMemory, updateMemory } from "./memory";
 
 const LANE: Record<BotId, { intents: MatchIntent[]; hint: string }> = {
   "career-growth": { intents: ["event", "person", "community"], hint: "founder AI builder meetup demo night" },
@@ -116,4 +116,48 @@ export async function POST(req: Request) {
   const merged: Suggestion[] = [];
   for (let i = 0; lists.some((l) => l[i]); i++) for (const l of lists) if (l[i]) merged.push(l[i]);
   return Response.json({ suggestions: merged.slice(0, body.limit ?? 6) } satisfies SuggestionsResponse);
+}
+
+// Sprout's shape (features/daily/Suggestion.tsx on #7): one pick, skipping titles already planned or passed.
+const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
+// "Thu 7:00 PM" -> the next such date as ISO, so Sprout can nudge before it starts.
+function startFrom(when?: string): string | undefined {
+  const m = when?.toLowerCase().match(/(sun|mon|tue|wed|thu|fri|sat)\w*\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)/);
+  if (!m) return undefined;
+  const d = new Date();
+  d.setDate(d.getDate() + (((DAYS.indexOf(m[1]) - d.getDay() + 7) % 7) || 7));
+  d.setHours((Number(m[2]) % 12) + (m[4] === "pm" ? 12 : 0), Number(m[3] ?? 0), 0, 0);
+  return d.toISOString();
+}
+
+export async function SUGGEST_POST(req: Request) {
+  const body = (await req.json().catch(() => ({}))) as { memories?: NomiMemory[]; skip?: string[] };
+  if (body.memories?.length) updateMemory({ daily: body.memories.filter((m) => m.id?.startsWith("daily-")) });
+  const skip = new Set((body.skip ?? []).map((t) => t.toLowerCase()));
+  const lists = await Promise.all((BOTS.map((b) => b.id) as BotId[]).map(suggestionsFor));
+  // Lean toward the bot whose goal is furthest behind.
+  const mem = readMemory();
+  const behind = (id: BotId) => mem.goals.find((g) => g.botId === id)?.progress ?? 1;
+  const pick = lists
+    .flat()
+    .filter((s) => !skip.has(s.title.toLowerCase()))
+    .sort((a, b) => behind(a.botId) - behind(b.botId))[0];
+  if (!pick) return Response.json({ suggestion: null });
+  const bot = BOTS.find((b) => b.id === pick.botId)!;
+  const start = startFrom(pick.when);
+  return Response.json({
+    suggestion: {
+      botId: pick.botId,
+      botName: bot.name,
+      emoji: bot.emoji,
+      title: pick.title,
+      subtitle: [pick.when, pick.where].filter(Boolean).join(" · "),
+      why: pick.why,
+      start,
+      end: start ? new Date(new Date(start).getTime() + 2 * 3600_000).toISOString() : undefined,
+      location: pick.where,
+      url: pick.url,
+    },
+  });
 }

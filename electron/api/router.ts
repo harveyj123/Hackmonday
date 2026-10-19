@@ -26,6 +26,7 @@ const ROUTES: Record<string, Handler> = {
   "POST /api/memory": memory.POST,
   "POST /api/route": triage.POST,
   "POST /api/suggestions": suggestions.POST,
+  "POST /api/suggest": suggestions.SUGGEST_POST,
 };
 
 export async function handleApi(req: Request): Promise<Response> {

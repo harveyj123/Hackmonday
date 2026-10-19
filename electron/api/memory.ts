@@ -83,6 +83,11 @@ export function updateMemory(update: MemoryUpdate): SharedMemory {
   }
   mem.items = mem.items.slice(-MAX_ITEMS);
 
+  if (update.daily) {
+    const fresh = update.daily.filter((m) => m.id.startsWith("daily-") && m.text?.trim());
+    mem.items = [...mem.items.filter((m) => !m.id.startsWith("daily-")), ...fresh];
+  }
+
   if (update.forget) mem.items = mem.items.filter((m) => m.id !== update.forget);
 
   for (const g of update.goals ?? []) {
