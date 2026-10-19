@@ -29,7 +29,7 @@ Estimates are rough. **Cut line:** D0–D5 + D7, then B0–B4. Everything below 
   - Acceptance: per-area templates and domain lists from the spec table. Extraction turns Search excerpts into draft opportunities (`vetted: false`) and fills only facts present in the excerpts. Ranking writes `whyMatch` ≤ 20 words. The model function is injected (shape of `chat()` in `lib/llm.ts`; the two-sided client is pending port), with a template fallback when no model is configured.
   - Verify: tests with a stubbed model on the D0 Search recording.
   - Files: `main/discovery/queries.ts`, `main/discovery/extract.ts`, `tests/discovery/extract.test.ts`
-- [ ] **D4: Cache + modes + fixtures** (~20 min)
+- [x] **D4: Cache + modes + fixtures** (~20 min)
   - Acceptance: `NOMI_DISCOVERY_MODE` live/cache/mock. The cache lives under userData (or `data/cache/` in scripts, gitignored). Fixtures per area exist and pass the `Opportunity` guard.
   - Verify: fixture validation test; `git status --ignored` shows the cache as ignored.
   - Files: `main/discovery/cache.ts`, `fixtures/discovery/career.json`, `fixtures/discovery/health.json`, `tests/discovery/fixtures.test.ts`, `.gitignore`

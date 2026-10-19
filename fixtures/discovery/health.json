@@ -1,0 +1,48 @@
+[
+  {
+    "id": "c2af73052753d70331da231e1aeb967d2df86f1a",
+    "kind": "place",
+    "source": "web",
+    "area": "health",
+    "title": "Mission Cliffs",
+    "url": "https://touchstoneclimbing.com/mission-cliffs",
+    "location": "2295 Harrison Street, San Francisco, CA 94110",
+    "host": {
+      "name": "Touchstone Climbing"
+    },
+    "joinMode": "dropin",
+    "whyMatch": "A Mission climbing gym open early and late, easy to fit in twice a week.",
+    "citations": [
+      "https://touchstoneclimbing.com/mission-cliffs"
+    ],
+    "vetted": false
+  },
+  {
+    "id": "2b681be5ec4174c34a2b6b0c6df8602899a2ac8a",
+    "kind": "place",
+    "source": "web",
+    "area": "health",
+    "title": "Dogpatch Boulders",
+    "url": "https://climbinggyms.org/gym/dogpatch-boulders-san-francisco-ca",
+    "joinMode": "dropin",
+    "whyMatch": "A well-reviewed SF bouldering gym for regular sessions.",
+    "citations": [
+      "https://climbinggyms.org/gym/dogpatch-boulders-san-francisco-ca"
+    ],
+    "vetted": false
+  },
+  {
+    "id": "167dc3a14adc4a10a03d80b01ad009fd9430bf78",
+    "kind": "place",
+    "source": "web",
+    "area": "health",
+    "title": "Movement San Francisco",
+    "url": "https://indoorclimbinggym.com/gyms/movement-san-francisco-san-francisco",
+    "joinMode": "dropin",
+    "whyMatch": "Beginner-friendly SF gym with bouldering, top rope and day passes.",
+    "citations": [
+      "https://indoorclimbinggym.com/gyms/movement-san-francisco-san-francisco"
+    ],
+    "vetted": false
+  }
+]
