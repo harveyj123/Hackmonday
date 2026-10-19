@@ -15,24 +15,28 @@ export type SearchPlan = {
 const EVENT_SITES = ["luma.com", "lu.ma", "meetup.com", "eventbrite.com", "partiful.com"];
 
 // From the spec's area table. Both Luma hosts stay in include_domains because Search returns either.
-const AREAS: Record<GoalArea, { kinds: OpportunityKind[]; domains: Partial<Record<OpportunityKind, string[]>>; placeNouns: [string, string] }> = {
+const AREAS: Record<GoalArea, { kinds: OpportunityKind[]; priority: OpportunityKind[]; domains: Partial<Record<OpportunityKind, string[]>>; placeNouns: [string, string] }> = {
   career: {
     kinds: ["event", "person", "place"],
+    priority: ["event", "group", "place", "person"],
     domains: { event: EVENT_SITES, person: ["linkedin.com", "x.com", "github.com"] },
     placeNouns: ["coworking space", "cafe"],
   },
   health: {
     kinds: ["place", "group", "event"],
+    priority: ["place", "group", "event", "person"],
     domains: { group: ["meetup.com"] },
     placeNouns: ["gym", "studio"],
   },
   hobbies: {
     kinds: ["group", "event", "place"],
+    priority: ["group", "event", "place", "person"],
     domains: { group: ["meetup.com"], event: ["meetup.com", "eventbrite.com", "luma.com", "lu.ma"] },
     placeNouns: ["studio", "club"],
   },
   social: {
     kinds: ["event", "group"],
+    priority: ["event", "group", "place", "person"],
     domains: { event: ["partiful.com", "luma.com", "lu.ma", "meetup.com"], group: ["meetup.com"] },
     placeNouns: ["bar", "venue"],
   },
@@ -75,6 +79,13 @@ function query(kw: string[], noun: string, city: string[]): string {
   return words.join(" ");
 }
 
+// Order cards take turns in: what you can walk into this week first, people last.
+export function kindPriority(area: GoalArea): OpportunityKind[] {
+  return AREAS[area].priority;
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
 export function planQueries(req: DiscoverRequest, now: Date): SearchPlan[] {
   const area = AREAS[req.area];
   const kw = keywords(req.goal);
@@ -83,6 +94,8 @@ export function planQueries(req: DiscoverRequest, now: Date): SearchPlan[] {
   return (req.kinds ?? area.kinds).map((kind) => {
     const nouns = kind === "place" ? area.placeNouns : KIND_NOUNS[kind];
     const queries = [...new Set(nouns.map((n) => query(kw, n, city)))];
+    // Generic event queries return calendars and listings; naming the month pulls in single event pages.
+    if (kind === "event") queries.push(query(kw.slice(0, 2), `${MONTHS[now.getMonth()]} ${now.getFullYear()}`, city));
     const when = kind === "event" ? ` in the next ${req.windowDays} days` : "";
     return {
       kind,

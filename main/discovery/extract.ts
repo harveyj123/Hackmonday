@@ -27,7 +27,40 @@ function isListing(u: URL, title: string): boolean {
   if (u.pathname === "/") return true;
   if (u.hostname === "meetup.com" && u.pathname.startsWith("/find")) return true;
   if (u.hostname.startsWith("eventbrite.") && u.pathname.startsWith("/d/")) return true;
-  return /^popular events in /i.test(title);
+  // Aggregators: "AI Events in San Francisco", "57 meetups for founders…", "Climbing Gyms in SF — 8 Places".
+  return (
+    /^popular events in /i.test(title) ||
+    /^events for /i.test(title) ||
+    /^\d+\s+(best\s+|top\s+)?[\w-]+/i.test(title) ||
+    /\b(events|meetups|gyms|things to do|places to \w+)\s+(in|near)\b/i.test(title)
+  );
+}
+
+// Posts are someone talking, not someone you can meet or a room you can walk into.
+function isPost(u: URL): boolean {
+  if (u.hostname === "x.com" || u.hostname === "twitter.com") return /\/status\//.test(u.pathname);
+  if (u.hostname === "linkedin.com") return /^\/(posts|pulse|feed)\//.test(u.pathname);
+  return false;
+}
+
+// A person card needs a profile page: linkedin.com/in/<id>, x.com/<handle> or github.com/<user>.
+function isProfile(u: URL): boolean {
+  const parts = u.pathname.split("/").filter(Boolean);
+  if (u.hostname === "linkedin.com") return parts[0] === "in" && parts.length === 2;
+  if (u.hostname === "x.com" || u.hostname === "github.com") return parts.length === 1;
+  return false;
+}
+
+const CITY_ALIASES: Record<string, string[]> = { "san francisco": ["bay area"], "new york": ["nyc"], "los angeles": ["la"] };
+
+// Search's location filter is country-level, so a page that never names the city (or its
+// initials or a common alias) is usually somewhere else: Manila gyms, upstate climbing centers.
+function mentionsCity(text: string, city: string): boolean {
+  const name = city.trim().toLowerCase();
+  const words = name.split(/\s+/);
+  const names = [name, ...(CITY_ALIASES[name] ?? []), ...(words.length > 1 ? [words.map((w) => w[0]).join("")] : [])];
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return names.some((n) => new RegExp(`(^|[^a-z])${escape(n)}([^a-z]|$)`, "i").test(text));
 }
 
 // A Luma calendar or a Meetup group page is a community to join, whatever kind the query asked for.
@@ -56,8 +89,10 @@ function baseDrafts(hits: Hit[], req: DiscoverRequest): Base[] {
     const url = canonicalUrl(hit.url);
     const u = new URL(url);
     const rawTitle = hit.title ?? "";
-    if (isListing(u, rawTitle)) continue;
+    if (isListing(u, rawTitle) || isPost(u)) continue;
     const kind = kindOf(u, rawTitle, hit.kind);
+    if (kind === "person" && !isProfile(u)) continue;
+    if (!mentionsCity([url, rawTitle, ...hit.excerpts].join("\n"), req.city)) continue;
     const source = sourceOf(u.hostname);
     out.push({
       draft: {

@@ -97,8 +97,15 @@ export function toCalendarEvent(o: Opportunity): CalendarEvent | null;
 1. **Plan queries.** Pick kinds and domains for the area (table below) and build 2–3 Search queries from `goal`, `context`, `city` and the week.
 2. **Search.** One `fast` call per kind, in parallel, with `include_domains`, `after_date` = today and `location: "us"`, `max_results` 8.
 3. **Canonicalize and dedupe.** Lowercase the host, rewrite `lu.ma` to `luma.com` (Luma's canonical host; `lu.ma` redirects there), strip `utm_*`, `ref` and trailing slashes, and dedupe on the canonical URL.
+   Then drop what isn't something you can walk into (rules added Oct 19 after the first live run):
+   - listing and aggregator pages: site roots, Meetup `/find/`, and titles like "AI Events in San Francisco", "57 meetups for…", "Events for October"
+   - posts: `x.com/*/status/*` and LinkedIn `/posts/`, `/pulse/`, `/feed/`
+   - `person` results that aren't a profile page (`linkedin.com/in/<id>`, `x.com/<handle>`, `github.com/<user>`)
+   - pages whose URL, title and excerpts never name the city, its initials ("SF") or an alias ("Bay Area"). Search's `location` is country-level only.
+
+   Luma calendars and Meetup group pages become `group`, whatever kind the query asked for. Event plans add a third query naming the month and year ("AI October 2026 San Francisco"), because generic queries mostly return calendars.
 4. **Extract.** One `chat({ json: true })` call turns the titles and excerpts into draft `Opportunity` fields (title, start, location, joinMode, source) with `vetted: false`. Only facts present in the excerpts get filled in. Events whose date falls outside the window are dropped.
-5. **Rank.** The same or a second model call orders the results and writes `whyMatch` (≤ 20 words). Without a model, keep Search order and use a template `whyMatch`.
+5. **Rank.** The same or a second model call orders the results and writes `whyMatch` (≤ 20 words). Without a model, keep Search order within each kind, let kinds take turns in the area's priority (career: event, group, place, person; health: place, group, event; hobbies: group, event, place; social: event, group), and use a template `whyMatch`.
 6. **Return** the top `limit` and write the cache.
 
 **Background path (does not block the reply):**
