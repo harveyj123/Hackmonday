@@ -32,3 +32,7 @@ Both routes fall back to mock data when keys are missing, so each half runs on i
 ## Keys
 
 Copy `.env.example` to `.env.local` and fill it in on each laptop. `.env*` is gitignored. Share keys in person or by a password manager, never in the repo or a chat.
+
+## Desktop app
+
+`npm run desktop` opens Nomi as an Electron app: the Next.js app in a main window plus Sprout, a small always-on-top pet in the bottom-right corner that opens the Daily check-in when clicked. It reuses a running `npm run dev` or starts one. Desktop-only code lives in `desktop/` (see `desktop/README.md`), so it doesn't touch `features/`.

@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'" />
+    <title>Sprout</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; font-family: -apple-system, system-ui, sans-serif; }
+      .wrap { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 8px; box-sizing: border-box; }
+      /* Drag Sprout around by the bubble; click the pet to open Daily. */
+      .bubble { -webkit-app-region: drag; background: #fff; color: #3b3a36; font-size: 12px; padding: 6px 10px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.15); margin-bottom: 6px; opacity: 0; transform: translateY(4px); transition: all .25s; }
+      .wrap:hover .bubble { opacity: 1; transform: none; }
+      button { -webkit-app-region: no-drag; background: none; border: 0; padding: 0; cursor: pointer; }
+      svg { width: 110px; height: 110px; animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 4px 6px rgba(0,0,0,.2)); }
+      button:hover svg { animation-duration: .9s; }
+      .leaf { transform-origin: 60px 38px; animation: sway 3.2s ease-in-out infinite; }
+      .eye { animation: blink 4.5s infinite; transform-origin: center 70px; }
+      @keyframes bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+      @keyframes sway { 0%,100% { transform: rotate(-6deg) } 50% { transform: rotate(6deg) } }
+      @keyframes blink { 0%,94%,100% { transform: scaleY(1) } 97% { transform: scaleY(.1) } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="bubble">How was today? 🌱</div>
+      <button id="pet" title="Open Daily check-in" aria-label="Open Daily check-in">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <g class="leaf">
+            <path d="M60 40 C 48 22, 30 22, 26 30 C 36 40, 50 42, 60 40 Z" fill="#7cc576" />
+            <path d="M60 40 C 72 20, 92 20, 96 28 C 86 40, 70 42, 60 40 Z" fill="#5fb35a" />
+            <path d="M60 40 L 60 52" stroke="#4f9a4a" stroke-width="3" stroke-linecap="round" />
+          </g>
+          <ellipse cx="60" cy="80" rx="34" ry="30" fill="#f6d9a8" />
+          <ellipse cx="60" cy="88" rx="22" ry="14" fill="#fbe8c8" />
+          <circle class="eye" cx="48" cy="72" r="4" fill="#3b3a36" />
+          <circle class="eye" cx="72" cy="72" r="4" fill="#3b3a36" />
+          <circle cx="42" cy="82" r="4" fill="#f4a6a0" opacity=".7" />
+          <circle cx="78" cy="82" r="4" fill="#f4a6a0" opacity=".7" />
+          <path d="M54 82 Q 60 88, 66 82" stroke="#3b3a36" stroke-width="2.5" fill="none" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+    <script>
+      document.getElementById("pet").addEventListener("click", () => window.nomi.openDaily());
+    </script>
+  </body>
+</html>
