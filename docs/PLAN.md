@@ -2,21 +2,22 @@
 
 **One-liner for judges:** Nomi is an open-source personal agent that reads your day, sees which people, places and communities push you toward your goals, then goes out on the live web and into your inbox to rebuild that environment for you.
 
-> **Update (Harvey's call):** the first build uses **Parallel + Apple Calendar** (an `.ics` file the user taps to add to Calendar, no auth). **Composio moves to a later step** for host emails and LinkedIn posts. Wherever this plan says Composio Gmail or Calendar below, read that as later; in the demo, Scene Scout holds the slot in Apple Calendar and links to the event page so you can request the invite yourself.
+> **Current decisions:** build with **Parallel + an open model + Apple Calendar** (an `.ics` invite you tap to add, no auth). **Composio is a later stretch** for host emails and LinkedIn posts. Nomi Daily is fronted by a **laptop pet** (section 4b). Harvey builds Daily, a teammate builds Bots (see `docs/WORKFLOW.md` in the repo).
 
 ## 1. Can you use the sponsors? Yes, all four fit naturally
 
 | Sponsor | Role in Nomi | What it actually does in the demo |
 |---|---|---|
 | **Parallel** | Nomi's eyes on the world | **Search API** (`fast` mode, about 700ms) for live lookups inside chat. **FindAll API** to find entities that match a goal ("AI meetups in SF this week where founders show up", "climbing gyms near Mission with social nights"). **Task API** (`core` or `base`) to enrich one hit into structured JSON: host, date, link, who attends, vibe, how to get in. **Monitor API** (stretch) to watch Luma/Meetup for new matches and ping Nomi. |
-| **Composio** | Nomi's hands | One `composio.sessions.create(user_id)` session, then `session.tools()` gives the agent meta tools to find, connect and run app actions. Use **Gmail** (email the host, draft a coffee invite), **Google Calendar** (hold the slot, invite the person), **Slack** (stretch: post into a community workspace). **LinkedIn** only for posting (the "promote yourself" bot), since the toolkit supports `LINKEDIN_CREATE_LINKED_IN_POST` but not DMs. |
+| **Apple Calendar** | Nomi's hands, for now | Approving a plan returns an `.ics` invite from `/api/ics`; tapping it on a Mac or iPhone adds the event to Calendar. No keys, no auth, works offline. |
+| **Composio (later)** | More hands, once the core works | One `composio.sessions.create(user_id)` session, then `session.tools()` gives the agent meta tools to find, connect and run app actions. Use **Gmail** (email the host, draft a coffee invite), **Google Calendar** (hold the slot, invite the person), **Slack** (stretch: post into a community workspace). **LinkedIn** only for posting (the "promote yourself" bot), since the toolkit supports `LINKEDIN_CREATE_LINKED_IN_POST` but not DMs. |
 | **Open-source model** | Nomi's brain and voice | Use the event's open-model credits (an OpenAI-compatible endpoint with something like Kimi K2.x, Qwen or gpt-oss). It drives the agent loop and tool calls, the friend persona (1 to 3 short bubbles), parsing your day into structured events, and scoring each segment against your goals. |
 | **Cline** | How you build it, and part of the pitch | Build the whole app with Cline (Plan then Act). Mention it in the demo, and keep `.clinerules` plus a short "built with Cline" section in the README. Cline CLI 2.0 has a headless `-y --json` mode; a cute stretch is a "Nomi builder" that uses Cline headless to spin up a new bot from a goal, but don't depend on it. |
 
-Rule of thumb for the pitch: **Parallel finds it, the open model decides, Composio does it.** Each judge should see their product do something that would be impossible without it.
+Rule of thumb for the pitch: **Parallel finds it, the open model decides, Nomi puts it on your calendar.** Each judge should see their product do something that would be impossible without it. Composio has a judge in the room, so if there's slack after 2:40, wiring the host email through it is the highest-value stretch.
 
 **Honest constraints to design around**
-- No public API lets you register for someone else's Luma, Partiful or Meetup event, or DM on LinkedIn. So "sign you up" in the demo means: Parallel finds the event and the host's contact, then Composio Gmail emails the host and Calendar holds the slot. Say "Nomi requests the invite" rather than "Nomi registers". Check the Composio catalog at kickoff for a Luma toolkit; if it's there, it's a bonus.
+- No public API lets you register for someone else's Luma, Partiful or Meetup event, or DM on LinkedIn. So "sign you up" in the demo means: Parallel finds the event and its page, Nomi holds the slot in Apple Calendar, and the card links to the event page to request the invite. Later, Composio Gmail can email the host directly. Say "Nomi gets you in the room" rather than "Nomi registers".
 - Keep every outbound action behind a one-tap **Approve** in the chat. It's safer, it demos well, and the judges will like seeing control stay with the user.
 - Send the demo emails to your own second inbox or a teammate, so it's real but harmless.
 
@@ -35,7 +36,7 @@ Build **one user, one goal, one day, two bots.** Everything else is a mocked scr
 
 **Cut for the hackathon:** photo analysis of streets and desk, the qualification bot, the exclusive circle bot, voice recording (use typed input or a pasted transcript), auth and multi-user, and image generation for the storyboard (render panels with HTML/CSS, emoji or icon and text; it's faster and reads as "magazine" with good typography).
 
-**Stack (boring on purpose):** Next.js and Tailwind; one `/api/agent` route running a tool-calling loop on the open model, with tools = Parallel (search, findall, task) plus Composio session tools; SQLite or JSON file for days and tasks; stream task progress to the UI by server-sent events or polling.
+**Stack (boring on purpose):** Next.js and Tailwind; one `/api/agent` route running a tool-calling loop on the open model, with tools = Parallel (search, findall, task) and a calendar-hold action that returns an `.ics` link (Composio session tools later); SQLite or JSON file for days and tasks; stream task progress to the UI by server-sent events or polling.
 
 ## 3. Which bots to make specific
 
@@ -45,8 +46,8 @@ Make these two real; show the rest as tiles on the bots home page marked "coming
 Merges your bullets 1 and 2. Goal in, then:
 1. Parallel FindAll: "AI founder events in SF in the next 7 days on Luma, Meetup or Partiful" (seed with a fast Search call if FindAll is slow).
 2. Parallel Task on the top 3: host name, contact, date, who usually attends, vibe, link. Rendered as cards.
-3. User taps one, and Nomi drafts an email to the host via Composio Gmail ("Hey, I'm new to SF and building X, would love to join") and puts a Calendar hold on the slot. Approve, and it's sent.
-4. Follow-on: "Two speakers there are people you'd click with," using Parallel Search for their public profiles, then Nomi drafts a coffee invite to one of them by Gmail and proposes Calendar times.
+3. User taps one, and Nomi offers to hold the slot. Approve, then tap "Add to Apple Calendar" and the event lands in Calendar, with the event link to request the invite. (Later: Composio Gmail emails the host, "Hey, I'm new to SF and building X, would love to join".)
+4. Follow-on: "Two speakers there are people you'd click with," using Parallel Search for their public profiles, then Nomi suggests a coffee slot as another `.ics` hold (Gmail invite later).
 Milestone bar: Find → Vet → Contact host → Calendar hold → Intro.
 
 **Bot B: Third Place (spaces and communities)**
@@ -71,8 +72,8 @@ Nomi Daily gets a face: a small, cute pet that lives in the corner of your scree
 
 | Time | Work |
 |---|---|
-| 11:45–12:15 | Cline scaffolds Next.js, page shell with the Daily/Bots toggle, seed data. Get keys working: Parallel, Composio (connect Gmail and Calendar with your own account), open model. |
-| 12:15–1:15 | Agent route plus tools. Scene Scout working in a bare UI: FindAll or Search, then Task, then Gmail draft. |
+| 11:45–12:15 | Cline scaffolds Next.js, page shell with the Daily/Bots toggle, seed data. Get keys working: Parallel and the open model. Apple Calendar needs none. |
+| 12:15–1:15 | Agent route plus tools. Scene Scout working in a bare UI: Search or FindAll, then Task, then the calendar hold. |
 | 1:15–2:00 | Daily: the input, the parse-to-JSON prompt, the storyboard render with colored frames, summary, hand-off chips. |
 | 2:00–2:40 | Chat polish: bubbles, cards, status line, milestone bars, approve buttons. Third Place bot (reuses the same tools). |
 | 2:40–3:00 | Record a backup video of the full happy path. Cache one good Parallel result in case wifi dies. |
@@ -83,14 +84,15 @@ Nomi Daily gets a face: a small, cute pet that lives in the corner of your scree
 1. **Hook (15s):** "Everyone's building agents that manage your inbox. But who you become depends on who you're around. Nomi is an open-source agent that rebuilds your offline environment around your goals."
 2. **Daily (45s):** The Nomi pet pops up in the corner: "hey, how'd today go?" Answer it: "Worked from my apartment all morning, felt stuck. Lunch alone. Went to an AI meetup at 6, met Priya who's building voice agents, felt energized." Hit Generate. The storyboard appears: the morning panel framed red, the meetup framed green. Read the one-line insight: "Your best moments this week all happened in rooms with builders. Your mornings at home are draining you."
 3. **Hand-off (10s):** Tap "Hand to Nomi" on the green panel. It switches to Bots and opens Scene Scout.
-4. **Scene Scout live (60s):** Nomi texts: "ok I'm on it 👀", then "found 3 rooms Priya-type people will be in this week". The status line reads "searching Luma, Meetup...". Show cards. Say out loud: **"That's Parallel FindAll and Task on the live web, with citations."** Tap one, and Nomi drafts the host email and a Calendar hold. Tap Approve, then tap "Add to Apple Calendar" and show the event land in Calendar. (Later, with Composio: Nomi also emails the host.)
+4. **Scene Scout live (60s):** Nomi texts: "ok I'm on it 👀", then "found 3 rooms Priya-type people will be in this week". The status line reads "searching Luma, Meetup...". Show cards. Say out loud: **"That's Parallel FindAll and Task on the live web, with citations."** Tap one, then Approve, then tap "Add to Apple Calendar" and show the event land in Calendar. (If the Composio stretch landed: flip to the Gmail sent folder and say "that's Composio".)
 5. **Third Place (30s):** Expand the milestones on a second task already running: a gym with Thursday social climbs, Calendar block added.
 6. **Close (20s):** "The brain is an open model, the whole thing was built with Cline, and it's all on GitHub. Nomi: your environment, on purpose."
 
-Tips: keep the network-heavy steps live but have the cached result one keypress away. Name each sponsor at the exact moment their product does something visible. End on the Gmail sent folder or the Calendar, because real side effects beat screenshots.
+Tips: keep the network-heavy steps live but have the cached result one keypress away. Name each sponsor at the exact moment their product does something visible. End on the event sitting in Apple Calendar, because real side effects beat screenshots.
 
 ## Sources checked
 - Parallel product glossary: https://docs.parallel.ai/getting-started/glossary.md
-- Composio docs and quickstart (sessions, `session.tools()`, Connect Links): https://docs.composio.dev/docs/quickstart
+- Parallel Search API reference (v1): https://docs.parallel.ai/api-reference/search/search.md
+- Composio docs and quickstart (later stretch) (sessions, `session.tools()`, Connect Links): https://docs.composio.dev/docs/quickstart
 - Composio LinkedIn toolkit limits: https://docs.composio.dev/kb/guide/toolkits-linkedin
 - Cline CLI 2.0 (headless `-y`, `--json`): https://cline.bot/blog/introducing-cline-cli-2-0
