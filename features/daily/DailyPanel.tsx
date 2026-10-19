@@ -6,7 +6,7 @@ import "./daily.css";
 import { Composer } from "./Composer";
 import { Storyboard } from "./Storyboard";
 import { PeriodAnalysisBox } from "./PeriodAnalysis";
-import { SEED_DAYS } from "./seed";
+import { demoToday, pastDays } from "./demo";
 import { clock, contextLines, type DayContext } from "./context";
 import { whenLabel, type Plan, type PlansResponse } from "./plans";
 import { dayDelta, healthByDay, stageOf, STAGE_LABEL, type HealthEvent } from "./health";
@@ -17,7 +17,8 @@ import { BOTS } from "@/data/bots";
 import type { ActionItem, DailyRequest } from "@/lib/types";
 import type { AnalyzeRequest, PeriodAnalysis, StoryDay } from "./types";
 
-export const TODAY = "2026-10-19";
+// The demo clock's day: the real start date until the presenter skips ahead (see demo.ts).
+export const TODAY = demoToday();
 export const TODAY_STORE = "nomi.daily.today";
 const TODAY_LABEL = new Date(TODAY + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
@@ -162,7 +163,7 @@ export function DailyPanel({
               </div>
             )}
 
-            {ctx?.source === "demo" && (editing || !day) && <p className="text-[11px] text-stone-400">Calendar: demo feed</p>}
+            {ctx?.error && (editing || !day) && <p className="text-[11px] text-stone-500">{ctx.error} Check that Nomi is allowed under System Settings › Privacy &amp; Security › Calendars.</p>}
             {loading ? (
               <div className="space-y-3" aria-live="polite">
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">Sprout is drawing your day…</p>
@@ -363,7 +364,7 @@ function DaysTab({
   onBots: (item?: ActionItem) => void;
 }) {
   const [span, setSpan] = useState<"week" | "month">("week");
-  const days = [...(today ? [today] : []), ...[...SEED_DAYS].sort((a, b) => b.date.localeCompare(a.date))];
+  const days = [...(today ? [today] : []), ...pastDays().sort((a, b) => b.date.localeCompare(a.date))];
   const growth = healthByDay(days, events);
   const byDate = Object.fromEntries(growth.map((g) => [g.date, g]));
   const progress = goalProgress(TODAY, days, plans);

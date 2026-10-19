@@ -7,7 +7,7 @@ export type ContextItem = {
   time?: string; // "HH:MM"
 };
 
-export type DayContext = { date: string; source: "demo" | "mac"; items: ContextItem[] };
+export type DayContext = { date: string; source: "demo" | "mac"; items: ContextItem[]; error?: string };
 
 export const DEMO_CONTEXT: Record<string, ContextItem[]> = {
   "2026-10-19": [

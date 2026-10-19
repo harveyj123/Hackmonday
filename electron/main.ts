@@ -156,6 +156,16 @@ function demoNudge() {
   petWindow?.webContents.send("nomi:pet", "demo-nudge");
 }
 
+// Demo: skip ahead to the next plan's day, or put Daily back to its starting state for another run.
+function demoNewDay() {
+  petWindow?.show();
+  petWindow?.webContents.send("nomi:pet", "demo-new-day");
+}
+function demoReset() {
+  petWindow?.show();
+  petWindow?.webContents.send("nomi:pet", "demo-reset");
+}
+
 function createTray() {
   tray = new Tray(nativeImage.createEmpty());
   tray.setTitle("🌱");
@@ -166,6 +176,8 @@ function createTray() {
       { label: "Open Nomi Bots", click: () => openBots() },
       { label: "Demo: nudge the next plan (⌘⌥⇧N)", click: demoNudge },
       { label: "Demo: a bot suggestion (⌘⌥⇧B)", click: demoSuggest },
+      { label: "Demo: skip to the next plan's day (⌘⌥⇧D)", click: demoNewDay },
+      { label: "Demo: start over (⌘⌥⇧R)", click: demoReset },
       { label: "Show / hide Sprout", click: () => (petWindow?.isVisible() ? petWindow.hide() : petWindow?.show()) },
       { type: "separator" },
       { label: "Quit Nomi", click: () => app.quit() },
@@ -191,6 +203,8 @@ app.whenReady().then(() => {
   // Global so it works on stage with any app in front; Option keeps it off common app shortcuts like ⌘⇧N.
   globalShortcut.register("CommandOrControl+Alt+Shift+N", demoNudge);
   globalShortcut.register("CommandOrControl+Alt+Shift+B", demoSuggest);
+  globalShortcut.register("CommandOrControl+Alt+Shift+D", demoNewDay);
+  globalShortcut.register("CommandOrControl+Alt+Shift+R", demoReset);
   app.on("activate", () => openBots());
 });
 
