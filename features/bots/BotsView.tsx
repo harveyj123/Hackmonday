@@ -1,13 +1,14 @@
 "use client";
 
-// Grok-style bot inbox: agents on the left, the active conversation on the right.
+// The Bots window, laid out like the demo walkthrough: bots and shared memory on the left, "What do you need?" or the active conversation on the right.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChatThread, type ChatSession } from "./ChatThread";
 import { BOTS } from "@/data/bots";
-import type { ActionItem, Bot, MemoryCandidate, NomiMemory } from "@/lib/types";
+import "./bots.css";
+import type { ActionItem, Bot, BotId, NomiMemory, RouteResponse, SharedMemory, Suggestion, SuggestionsResponse } from "@/lib/types";
 
 const CONVERSATION_STORAGE_KEY = "nomi-agent-conversations-v6";
-const MEMORY_STORAGE_KEY = "nomi-shared-memory-v4";
+const DAILY_MEMORY_KEY = "nomi-shared-memory-v4"; // features/daily/memory.ts on #7
 
 const BOT_META: Record<string, { avatar: string; preview: string; time: string; unread?: boolean }> = {
   "career-growth": {
@@ -27,17 +28,12 @@ const BOT_META: Record<string, { avatar: string; preview: string; time: string; 
   },
 };
 
-function BotAvatar({ bot, small = false }: { bot: Bot; small?: boolean }) {
+// On a Mac the window's real traffic lights sit in the sidebar's top bar; elsewhere draw the mockup's.
+const NATIVE_LIGHTS = typeof navigator !== "undefined" && /Electron/.test(navigator.userAgent) && /Mac/.test(navigator.platform);
+
+function BotAvatar({ bot, size = 2.6 }: { bot: Bot; size?: number }) {
   const meta = BOT_META[bot.id] ?? BOT_META["career-growth"];
-  return (
-    <div
-      className={`relative shrink-0 overflow-hidden rounded-[38%] border border-black/[0.07] bg-[#f7f1e7] shadow-sm ${
-        small ? "h-8 w-8" : "h-11 w-11"
-      }`}
-    >
-      <img src={meta.avatar} alt={`${bot.name} mascot`} className="absolute inset-0 h-full w-full object-cover" />
-    </div>
-  );
+  return <img src={meta.avatar} alt="" className="av" style={{ width: `${size}em`, height: `${size}em` }} />;
 }
 
 export function BotsView({
@@ -47,29 +43,134 @@ export function BotsView({
 }: {
   handoff: ActionItem | null;
   onHandoffConsumed: () => void;
-  onOpenDaily: () => void;
+  onOpenDaily?: () => void;
 }) {
   const [active, setActive] = useState<Bot>(BOTS.find((bot) => bot.live) ?? BOTS[0]);
   const [pending, setPending] = useState<ActionItem | null>(null);
-  const [query, setQuery] = useState("");
-  const [showList, setShowList] = useState(true);
+  const [request, setRequest] = useState("");
+  const [routing, setRouting] = useState(false);
+  const [routed, setRouted] = useState<RouteResponse | null>(null);
+  const [shared, setShared] = useState<SharedMemory | null>(null);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [keyWarning, setKeyWarning] = useState("");
+
+  useEffect(() => {
+    fetch("/api/bots/status")
+      .then((res) => res.json() as Promise<{ model: boolean; parallel: boolean; malformed: string[] }>)
+      .then((s) => {
+        if (s.malformed.length) setKeyWarning(`${s.malformed.join(" and ")} has a stray character. Paste it again in .env.local and restart.`);
+        else if (!s.model || !s.parallel) setKeyWarning(`Demo mode: add ${[!s.model && "CLINE_API_KEY", !s.parallel && "PARALLEL_API_KEY"].filter(Boolean).join(" and ")} to .env.local for live results.`);
+      })
+      .catch(() => undefined);
+  }, []);
+  const [view, setView] = useState<"home" | "chat">("home");
   const [sessions, setSessions] = useState<Record<string, ChatSession>>({});
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
-  const [memories, setMemories] = useState<NomiMemory[]>([]);
   const [sessionEpoch, setSessionEpoch] = useState(0);
 
-  const visibleBots = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return BOTS;
-    return BOTS.filter((bot) => `${bot.name} ${bot.tagline}`.toLowerCase().includes(needle));
-  }, [query]);
+  const visibleBots = BOTS;
+  const memories = useMemo(() => shared?.items ?? [], [shared]);
+
+  // The shared memory lives in the main process; Daily writes to it from Sprout, so re-read on focus.
+  const refreshMemory = useCallback(async () => {
+    try {
+      setShared((await (await fetch("/api/memory")).json()) as SharedMemory);
+    } catch {
+      // Keep the last copy.
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshMemory();
+    window.addEventListener("focus", refreshMemory);
+    return () => window.removeEventListener("focus", refreshMemory);
+  }, [refreshMemory]);
+
+  // Daily (in Sprout) also writes its entries to localStorage; mirror them into the shared store.
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const all = JSON.parse(window.localStorage.getItem(DAILY_MEMORY_KEY) ?? "[]") as NomiMemory[];
+        // Send the full set, even when empty, so Daily's "start over" clears it here too.
+        const daily = all.filter((m) => m.id?.startsWith("daily-"));
+        void fetch("/api/memory", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ daily }) })
+          .then((res) => res.json() as Promise<SharedMemory>)
+          .then(setShared);
+      } catch {
+        // Nothing from Daily yet.
+      }
+    };
+    sync();
+    const onStorage = (e: StorageEvent) => e.key === DAILY_MEMORY_KEY && sync();
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  // Bots scout proactively from that memory.
+  const memoryStamp = shared?.updatedAt;
+  useEffect(() => {
+    if (!memoryStamp) return;
+    fetch("/api/suggestions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ limit: 3 }) })
+      .then((res) => res.json() as Promise<SuggestionsResponse>)
+      .then((data) => setSuggestions(data.suggestions.filter((sug, i, all) => all.findIndex((x) => x.title === sug.title) === i)))
+      .catch(() => undefined);
+    // Re-scout when the goals change, not on every chat fact.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memoryStamp?.slice(0, 15)]);
+
+  function openWith(item: ActionItem) {
+    const next = BOTS.find((bot) => bot.id === item.botId);
+    if (next) setActive(next);
+    setPending(item);
+    setView("chat");
+  }
+
+  // The home view's four tiles come straight from the shared memory and the bots' scouting.
+  const tiles = useMemo(() => {
+    const items = shared?.items ?? [];
+    const daily = items.filter((m) => m.id.startsWith("daily-"));
+    const person = [...daily, ...items].find((m) => m.kind === "person");
+    const behind = [...(shared?.goals ?? [])].sort((a, b) => a.progress - b.progress)[0];
+    const planned = [...daily, ...items].find((m) => m.kind === "commitment");
+    const next = suggestions[0];
+    return [
+      person && { label: "From today", text: person.text, ask: `More rooms with people like this: ${person.text}` },
+      behind && { label: "Goal", text: `${behind.title}. ${behind.note ?? `${Math.round(behind.progress * 100)}% there`}`, ask: `Help me with my goal: ${behind.title}` },
+      planned && { label: "Planned", text: planned.text, ask: `Prep me for: ${planned.text}` },
+      next && { label: "Next", text: `${next.title}${next.when ? ` · ${next.when}` : ""}`, suggestion: next },
+    ].filter(Boolean) as { label: string; text: string; ask?: string; suggestion?: Suggestion }[];
+  }, [shared, suggestions]);
+
+  async function submitRequest(preset?: string) {
+    const text = (preset ?? request).trim();
+    if (!text || routing) return;
+    setRequest(text);
+    setRouting(true);
+    try {
+      const res = await fetch("/api/route", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+      const route = (await res.json()) as RouteResponse;
+      setRouted(route);
+      // Let the routing line land on screen before the bot's thread opens.
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+      setRequest("");
+      setRouted(null);
+      void fetch("/api/memory", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ events: [{ source: "user", kind: "request", text, botId: route.botId }] }),
+      });
+      openWith({ id: crypto.randomUUID(), botId: route.botId as BotId, title: text, context: "Scout real options for this request and pick the best fit." });
+    } finally {
+      setRouting(false);
+    }
+  }
 
   useEffect(() => {
     if (!handoff) return;
     const next = BOTS.find((bot) => bot.id === handoff.botId);
     if (next) setActive(next);
     setPending(handoff);
-    setShowList(false);
+    setView("chat");
     onHandoffConsumed();
   }, [handoff, onHandoffConsumed]);
 
@@ -85,8 +186,6 @@ export function BotsView({
       window.localStorage.removeItem("nomi-shared-memory-v3");
       const saved = window.localStorage.getItem(CONVERSATION_STORAGE_KEY);
       if (saved) setSessions(JSON.parse(saved) as Record<string, ChatSession>);
-      const savedMemories = window.localStorage.getItem(MEMORY_STORAGE_KEY);
-      if (savedMemories) setMemories(JSON.parse(savedMemories) as NomiMemory[]);
     } catch {
       // A corrupt local cache should never stop the agents from opening.
     } finally {
@@ -99,55 +198,206 @@ export function BotsView({
     window.localStorage.setItem(CONVERSATION_STORAGE_KEY, JSON.stringify(sessions));
   }, [sessions, sessionsLoaded]);
 
-  useEffect(() => {
-    if (!sessionsLoaded) return;
-    window.localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(memories));
-  }, [memories, sessionsLoaded]);
 
   const rememberSession = useCallback((session: ChatSession) => {
     setSessions((current) => ({ ...current, [active.id]: session }));
   }, [active.id]);
 
-  const rememberFacts = useCallback((learned: MemoryCandidate[]) => {
-    if (!learned.length) return;
-    setMemories((current) => {
-      const next = [...current];
-      for (const candidate of learned) {
-        const text = candidate.text.trim();
-        if (!text || next.some((memory) => memory.kind === candidate.kind && memory.text.toLowerCase() === text.toLowerCase())) continue;
-        next.push({ ...candidate, text, id: crypto.randomUUID(), createdAt: new Date().toISOString() });
-      }
-      return next.slice(-40);
-    });
-  }, []);
+  // The agent already saved what it learned in the main process; just re-read.
+  const rememberFacts = useCallback(() => {
+    void refreshMemory();
+  }, [refreshMemory]);
 
   const forgetMemory = useCallback((id: string) => {
-    setMemories((current) => current.filter((memory) => memory.id !== id));
+    void fetch("/api/memory", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ forget: id }) })
+      .then((res) => res.json() as Promise<SharedMemory>)
+      .then(setShared)
+      .catch(() => undefined);
   }, []);
 
+  const sharedItems = shared?.items ?? [];
+  const memoryChips = [
+    ...sharedItems.filter((m) => m.id.startsWith("daily-")).map((m) => ({ ...m, fresh: true })),
+    ...sharedItems.filter((m) => !m.id.startsWith("daily-")).slice(-8).reverse().map((m) => ({ ...m, fresh: false })),
+  ].slice(0, 12);
+
+
+  function openSuggestion(sug: Suggestion) {
+    openWith({ id: sug.id, botId: sug.botId, title: sug.title, context: [sug.why, sug.when, sug.where, sug.url].filter(Boolean).join(" · ") });
+  }
+
   return (
-    <div className="mx-auto flex h-[calc(100dvh-2rem)] min-h-[620px] w-full max-w-[1180px] overflow-hidden rounded-[24px] border border-black/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.12)]">
-      <aside
-        className={`${showList ? "flex" : "hidden"} w-full shrink-0 flex-col border-r border-black/8 bg-[#f7f7f7] min-[500px]:flex min-[500px]:w-[230px] md:w-[320px] lg:w-[340px]`}
-      >
-        <div className="flex h-14 items-center gap-2 border-b border-black/5 px-5">
-          <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-          <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-          <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-          <p className="ml-3 text-sm font-semibold tracking-tight text-neutral-900">Nomi Bots</p>
-          <button
-            type="button"
-            aria-label="Open Nomi Daily"
-            onClick={onOpenDaily}
-            className="ml-auto rounded-full px-2.5 py-1 text-xs font-medium text-neutral-500 transition hover:bg-black/5 hover:text-neutral-900"
-          >
-            Daily
+    <div className="nb">
+      <aside className="side">
+        <div className="top drag">
+          {NATIVE_LIGHTS ? (
+            <span className="native" />
+          ) : (
+            <>
+              <span className="light" />
+              <span className="light" />
+              <span className="light" />
+            </>
+          )}
+          <button type="button" className="title" onClick={() => setView("home")} title="What do you need?">
+            Nomi Bots
           </button>
-          <button
-            type="button"
-            aria-label="New conversation"
-            title="New conversation"
-            onClick={() => {
+          {onOpenDaily && (
+            <button type="button" className="daily" aria-label="Open Nomi Daily" onClick={onOpenDaily}>
+              Daily
+            </button>
+          )}
+        </div>
+
+        {keyWarning && <p className="warn">{keyWarning}</p>}
+
+        <div className="rows">
+          {BOTS.map((bot) => {
+            const meta = BOT_META[bot.id] ?? BOT_META["career-growth"];
+            const selected = view === "chat" && active.id === bot.id;
+            const latest = sessions[bot.id]?.messages.filter((m) => m.text).at(-1)?.text ?? meta.preview;
+            const goal = shared?.goals.find((g) => g.botId === bot.id);
+            const unread = Boolean(sessions[bot.id]?.messages.length) && !selected && sessions[bot.id]?.messages.at(-1)?.role === "bot";
+            const pct = goal ? Math.round(goal.progress * 100) : 0;
+            return (
+              <button
+                key={bot.id}
+                type="button"
+                onClick={() => {
+                  setActive(bot);
+                  setPending(null);
+                  setView("chat");
+                }}
+                className={`botrow ${selected ? "on" : ""}`}
+              >
+                <BotAvatar bot={bot} />
+                <span className="txt">
+                  <span className="name">{bot.name}</span>
+                  <small>{latest}</small>
+                  {goal && (
+                    <span className="goal" title={`${goal.title}${goal.note ? ` · ${goal.note}` : ""}`}>
+                      <i>
+                        <span style={{ width: `${pct}%` }} />
+                      </i>
+                      <em>{pct}%</em>
+                    </span>
+                  )}
+                </span>
+                {unread && <span className="dot" />}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mem">
+          <span className="s-lbl">Shared memory · fed by Daily</span>
+          <div className="mm">
+            {memoryChips.length === 0 && <span className="empty">Do a check-in in Sprout and it shows up here.</span>}
+            {memoryChips.map((m) => (
+              <span key={m.id} title={`${m.kind}${m.id.startsWith("daily-") ? " · from Daily" : ""}`} className={m.fresh ? "new" : ""}>
+                <span className="t">{m.text}</span>
+                {!m.id.startsWith("daily-") && m.kind !== "goal" && (
+                  <button type="button" onClick={() => forgetMemory(m.id)} aria-label={`Forget ${m.text}`}>
+                    ×
+                  </button>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      <main className="main">
+        {view === "home" ? (
+          <div className="home">
+            <div className="hd drag" />
+            <div className="ask">
+              <h6>What do you need?</h6>
+              <form
+                className="askbox"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submitRequest();
+                }}
+              >
+                <input
+                  autoFocus
+                  value={request}
+                  onChange={(event) => setRequest(event.target.value)}
+                  placeholder="Ask for anything. Nomi picks the right bot."
+                  aria-label="What do you need? Nomi sends it to the right bot"
+                />
+                <button type="submit" className="send" disabled={!request.trim() || routing} aria-label="Send">
+                  ↑
+                </button>
+              </form>
+              {(routing || routed) && (
+                <div className="route">
+                  <span>Routing</span>
+                  <span className="arrow">→</span>
+                  {!routed && <span className="pulse" />}
+                  {routed &&
+                    BOTS.map((bot) =>
+                      bot.id === routed.botId ? (
+                        <span key={bot.id} className="pick">
+                          <BotAvatar bot={bot} size={1.6} />
+                          {bot.name}
+                        </span>
+                      ) : (
+                        <span key={bot.id} className="skip">
+                          <BotAvatar bot={bot} size={1.4} />
+                          {bot.name.split(" ")[0]}
+                        </span>
+                      ),
+                    )}
+                  {routed?.reason && <span className="why">{routed.reason}</span>}
+                </div>
+              )}
+            </div>
+            <div className="sugs">
+              {tiles.map((tile, i) => (
+                <button
+                  key={tile.label}
+                  type="button"
+                  style={{ animationDelay: `${i * 60}ms` }}
+                  onClick={() => (tile.suggestion ? openSuggestion(tile.suggestion) : tile.ask && void submitRequest(tile.ask))}
+                >
+                  <b>{tile.label}</b>
+                  <small>{tile.text}</small>
+                </button>
+              ))}
+            </div>
+            {suggestions.length > 1 && (
+              <div className="scouted">
+                <span className="s-lbl">Scouted for you</span>
+                {suggestions.slice(1).map((sug, i) => {
+                  const bot = BOTS.find((b) => b.id === sug.botId);
+                  return (
+                    <button key={sug.id} type="button" style={{ animationDelay: `${240 + i * 60}ms` }} onClick={() => openSuggestion(sug)}>
+                      {bot && <BotAvatar bot={bot} size={2.2} />}
+                      <span className="txt">
+                        <b>{sug.title}</b>
+                        <small>{[sug.when, sug.why].filter(Boolean).join(" · ")}</small>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          <ChatThread
+            key={`${active.id}-${sessionEpoch}-${sessionsLoaded}-${pending?.id ?? ""}`}
+            bot={active}
+            handoff={pending}
+            avatar={<BotAvatar bot={active} size={1.9} />}
+            initialSession={sessions[active.id]}
+            memories={memories}
+            onSessionChange={rememberSession}
+            onMemoriesLearned={rememberFacts}
+            onForgetMemory={forgetMemory}
+            onOpenDaily={onOpenDaily}
+            onNewChat={() => {
               setSessions((current) => {
                 const next = { ...current };
                 delete next[active.id];
@@ -156,93 +406,8 @@ export function BotsView({
               setPending(null);
               setSessionEpoch((value) => value + 1);
             }}
-            className="grid h-7 w-7 place-items-center rounded-full text-xl font-light text-neutral-500 transition hover:bg-black/5 hover:text-neutral-900"
-          >
-            +
-          </button>
-        </div>
-
-        <div className="px-3 pb-2 pt-3">
-          <label className="flex h-10 items-center gap-2 rounded-xl bg-black/[0.055] px-3 text-neutral-400 ring-1 ring-inset ring-black/[0.04] focus-within:bg-white focus-within:ring-black/10">
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current stroke-2">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m16.5 16.5 4 4" />
-            </svg>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search bots"
-              className="min-w-0 flex-1 bg-transparent text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
-            />
-            <span className="rounded border border-black/10 bg-white px-1.5 py-0.5 text-[10px] text-neutral-400">⌘K</span>
-          </label>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-2 pb-3">
-          {visibleBots.map((bot) => {
-            const meta = BOT_META[bot.id] ?? BOT_META["career-growth"];
-            const selected = active.id === bot.id;
-            const latest = sessions[bot.id]?.messages.at(-1)?.text ?? meta.preview;
-            return (
-              <button
-                key={bot.id}
-                type="button"
-                onClick={() => {
-                  if (!bot.live) return;
-                  setActive(bot);
-                  setPending(null);
-                  setShowList(false);
-                }}
-                className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
-                  selected ? "bg-[#e8e8e8]" : "hover:bg-black/[0.035]"
-                } ${!bot.live ? "cursor-default" : ""}`}
-              >
-                <BotAvatar bot={bot} />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline gap-2">
-                    <span className={`truncate text-[14px] font-semibold ${bot.live ? "text-neutral-900" : "text-neutral-500"}`}>
-                      {bot.name}
-                    </span>
-                    <span className="ml-auto shrink-0 text-[11px] text-neutral-400">{meta.time}</span>
-                  </span>
-                  <span className="mt-0.5 flex items-center gap-2">
-                    <span className="truncate text-xs text-neutral-500">{latest}</span>
-                    {meta.unread && <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-
-          {visibleBots.length === 0 && (
-            <p className="px-4 py-8 text-center text-sm text-neutral-400">No bots found</p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3 border-t border-black/5 px-5 py-3">
-          <div className="grid h-8 w-8 place-items-center rounded-full bg-neutral-950 text-xs font-semibold text-white">H</div>
-          <div className="min-w-0">
-            <p className="truncate text-xs font-semibold text-neutral-900">Harvey</p>
-            <p className="truncate text-[11px] text-neutral-400">Your environment, on purpose</p>
-          </div>
-          <button aria-label="Settings" className="ml-auto text-lg text-neutral-400 hover:text-neutral-700">···</button>
-        </div>
-      </aside>
-
-      <main className={`${showList ? "hidden" : "flex"} min-w-0 flex-1 min-[500px]:flex`}>
-        <ChatThread
-          key={`${active.id}-${sessionEpoch}-${sessionsLoaded}`}
-          bot={active}
-          handoff={pending}
-          avatar={<BotAvatar bot={active} small />}
-          initialSession={sessions[active.id]}
-          memories={memories}
-          onSessionChange={rememberSession}
-          onMemoriesLearned={rememberFacts}
-          onForgetMemory={forgetMemory}
-          onBack={() => setShowList(true)}
-          onOpenDaily={onOpenDaily}
-        />
+          />
+        )}
       </main>
     </div>
   );

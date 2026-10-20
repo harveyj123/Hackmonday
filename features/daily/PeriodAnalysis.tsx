@@ -5,7 +5,7 @@ import { forwardRef } from "react";
 import type { ActionItem } from "@/lib/types";
 import type { PeriodAnalysis as Analysis } from "./types";
 
-const BOT_LABEL: Record<string, string> = { "career-growth": "Career Growth", "health-sports": "Health & Sports", "social-hobbies": "Social & Hobbies" };
+const BOT_LABEL: Record<string, string> = { "career-growth": "Career & Growth", "health-sports": "Health & Sports", "social-hobbies": "Social & Hobbies" };
 const TONE = { up: "border-emerald-400 bg-emerald-50", down: "border-rose-400 bg-rose-50", flat: "border-amber-300 bg-amber-50" };
 
 function short(d: string) {

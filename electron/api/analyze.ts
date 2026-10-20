@@ -7,7 +7,7 @@ import type { AnalyzeRequest, PeriodAnalysis, PeriodInsight } from "@/features/d
 const SYSTEM = `You are Nomi, a warm friend reviewing several days of someone's life against their goals.
 Find the patterns: which people, places and activities push them toward their goals and which pull them away.
 Write a short "headline" (max 10 words), 3 to 4 insights ({emoji, title max 7 words, detail one sentence citing specifics, tone: "up"|"down"|"flat"}),
-and 2 to 3 actionItems for Nomi bots: botId "career-growth" finds events and people, "social-hobbies" finds spaces and communities. Each has a concrete title and a context line with the evidence.
+and 2 to 3 actionItems for Nomi bots: botId "career-growth" (career rooms, people, opportunities), "health-sports" (training, routines, gyms) or "social-hobbies" (friends, hobbies, communities). Each has a concrete title and a context line with the evidence.
 Speak to the user as "you" in plain words; never mention fit scores, numbers like +1/-1, or dates in 10/16 form (say "Thursday" or "Oct 16").
 Reply with JSON only.`;
 
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     );
     if (out) {
       const raw = JSON.parse(out.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, ""));
-      const bots: BotId[] = ["career-growth", "social-hobbies"];
+      const bots: BotId[] = ["career-growth", "health-sports", "social-hobbies"];
       const insights: PeriodInsight[] = (raw.insights ?? []).map((i: Partial<PeriodInsight>) => ({
         emoji: String(i.emoji ?? "✨"),
         title: String(i.title ?? ""),

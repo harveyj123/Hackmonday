@@ -1,0 +1,78 @@
+// Owned by Bots. Keeps live calls stage-safe: a time limit on every model or search call, and the last
+// good live answer saved to disk so a flaky venue network still shows real results from earlier.
+import { app } from "electron";
+import fs from "node:fs";
+import path from "node:path";
+
+export async function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T | null> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn(`[live] ${label} took over ${ms}ms, using the fallback`);
+      resolve(null);
+    }, ms);
+  });
+  try {
+    return await Promise.race([work.catch((e) => {
+      console.warn(`[live] ${label} failed:`, e instanceof Error ? e.message : e);
+      return null;
+    }), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const file = () => path.join(app.getPath("userData"), "nomi-live-cache.json");
+let store: Record<string, unknown> | null = null;
+
+function load(): Record<string, unknown> {
+  if (store) return store;
+  try {
+    store = JSON.parse(fs.readFileSync(file(), "utf8")) as Record<string, unknown>;
+  } catch {
+    store = {};
+  }
+  return store;
+}
+
+export function cached<T>(key: string): T | undefined {
+  return load()[key] as T | undefined;
+}
+
+export function saveCached(key: string, value: unknown) {
+  const s = load();
+  s[key] = value;
+  try {
+    fs.mkdirSync(path.dirname(file()), { recursive: true });
+    fs.writeFileSync(file(), JSON.stringify(s));
+  } catch (e) {
+    console.warn("[live] could not save cache", e);
+  }
+}
+
+// Models sometimes wrap JSON in a code fence or add a sentence; take the outermost object.
+export function parseJson<T>(raw: string | null): T | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    if (start < 0 || end <= start) return null;
+    try {
+      return JSON.parse(raw.slice(start, end + 1)) as T;
+    } catch {
+      return null;
+    }
+  }
+}
+
+// GET /api/bots/status: whether the bots are live, and which keys need pasting again.
+export async function STATUS_GET() {
+  const malformed = (process.env.NOMI_MALFORMED_KEYS ?? "").split(",").filter(Boolean);
+  return Response.json({
+    model: Boolean(process.env.CLINE_API_KEY || process.env.OPENAI_API_KEY || process.env.LLM_API_KEY),
+    parallel: Boolean(process.env.PARALLEL_API_KEY),
+    malformed: malformed.filter((k) => /CLINE|PARALLEL|OPENAI|LLM/.test(k)),
+  });
+}

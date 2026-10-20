@@ -14,7 +14,7 @@ export const SEED_DAYS: StoryDay[] = [
     ],
     summary: "Your climbing night did double duty: a workout and a founder-ish conversation with Leo. The afternoon alone was the drag.",
     actionItems: [
-      { id: "a1", botId: "social-hobbies", title: "Find a climbing gym with a social night", context: "Climbing with Leo was the highlight; wants climbing plus builder company.", fromSegmentId: "s3" },
+      { id: "a1", botId: "health-sports", title: "Find a climbing gym with a social night", context: "Climbing with Leo was the highlight; wants climbing plus builder company.", fromSegmentId: "s3" },
     ],
   },
   {

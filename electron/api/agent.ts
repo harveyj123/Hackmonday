@@ -1,9 +1,12 @@
-// One conversational turn for a Nomi goal-area agent.
+// Owned by Bots. One conversational turn for a Nomi goal-area agent: Parallel to find, model to decide, Apple Calendar to act.
 import { AGENT_MATCHES, detectMatchIntent, type AgentMatch } from "@/data/agent-matches";
+import { demoEvents, mentionsPastDate } from "@/data/demo-events";
 import { icsLink, type CalendarEvent } from "@/lib/calendar";
 import { runApprovedAction } from "@/lib/composio";
 import { chat } from "@/lib/llm";
-import { parallelConfigured, search, type SearchResult } from "@/lib/parallel";
+import { EVENT_DOMAINS, parallelConfigured, search, type SearchResult } from "@/lib/parallel";
+import { cached, parseJson, saveCached, withTimeout } from "./live";
+import { memoryPrompt, readMemory, updateMemory } from "./memory";
 import type { AgentRequest, AgentResponse, BotId, BotTask, ChatMessage, MemoryCandidate, MemoryKind, PendingAction } from "@/lib/types";
 
 const AGENTS: Record<BotId, { name: string; specialty: string; searchHint: string; taskTitle: string; milestones: string[] }> = {
@@ -180,24 +183,75 @@ async function liveResults(body: AgentRequest, ask: string, intent: NonNullable<
   const results = await search(
     `Find one trustworthy, current, high-fit ${intent} for this ${agent.name} goal: ${ask}. Location context: ${place}`,
     [ask, `${agent.searchHint} ${place}`],
-    { maxResults: 4 },
+    { maxResults: 4, ...(intent === "event" ? { includeDomains: EVENT_DOMAINS } : {}) },
   ).catch(() => null);
-  return results ?? [];
+  // Keep the last live hit per bot and intent, so a dropped network still shows a real card.
+  const key = `agent:${botId}:${intent}`;
+  // Only upcoming, one card per page: drop hits that name a date already past, and repeats.
+  const fresh = (results ?? []).filter(
+    (r, i, all) =>
+      !mentionsPastDate(`${r.title ?? ""} ${r.excerpts.join(" ")}`) &&
+      all.findIndex((x) => x.url === r.url || (x.title && x.title === r.title)) === i,
+  );
+  if (fresh.length) saveCached(key, fresh);
+  return fresh.length ? fresh : (cached<SearchResult[]>(key) ?? []).filter((r) => !mentionsPastDate(`${r.title ?? ""} ${r.excerpts.join(" ")}`));
 }
 
-function resultMessages(results: SearchResult[]): ChatMessage[] {
-  return results.slice(0, 1).map((result) => ({
-    id: crypto.randomUUID(),
-    role: "bot",
-    text: "I found one current option that looks unusually relevant.",
-    card: {
-      eyebrow: "Current opportunity",
-      title: result.title || "Live result",
-      subtitle: result.excerpts[0]?.slice(0, 180),
-      url: result.url,
-      cta: "View more",
-    },
-  }));
+const DEMO_LINE: Record<BotId, string> = {
+  "health-sports": "found a couple you can actually make this week. the Wednesday one is easy to just show up to 👀",
+  "career-growth": "two builder rooms this week that fit what you're going for. both small enough to actually talk to people",
+  "social-hobbies": "ok these two look fun and low-key. good ones to keep showing up to",
+};
+
+type LivePick = { index: number; title?: string; start?: string; end?: string; location?: string; why?: string };
+
+const SITE: Record<string, string> = { "lu.ma": "Luma", "luma.com": "Luma", "meetup.com": "Meetup", "partiful.com": "Partiful", "eventbrite.com": "Eventbrite" };
+
+function site(url: string) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return SITE[host] ?? host;
+  } catch {
+    return "Web";
+  }
+}
+
+function when(start?: string) {
+  const d = start ? new Date(start) : null;
+  if (!d || Number.isNaN(d.getTime())) return undefined;
+  return d.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).replace(/:00/g, "");
+}
+
+// Live Parallel hits as up to two event cards; a pick with a start time gets an Approve that writes the .ics.
+function resultMessages(results: SearchResult[], picks: LivePick[]): ChatMessage[] {
+  const chosen = (picks.length ? picks : [{ index: 0 }]).filter((p) => results[p.index]).slice(0, 2);
+  return chosen.map((p) => {
+    const r = results[p.index];
+    const title = p.title || r.title || "Live result";
+    const start = p.start && !Number.isNaN(new Date(p.start).getTime()) ? new Date(p.start) : null;
+    const end = p.end && !Number.isNaN(new Date(p.end).getTime()) ? new Date(p.end) : start ? new Date(start.getTime() + 2 * 3600_000) : null;
+    return {
+      id: crypto.randomUUID(),
+      role: "bot",
+      text: "",
+      card: {
+        title,
+        subtitle: [when(p.start), p.location].filter(Boolean).join(" · ") || r.excerpts[0]?.slice(0, 140),
+        why: p.why,
+        url: r.url,
+        source: site(r.url),
+        cta: "View more",
+      },
+      approval: start && end
+        ? {
+            id: crypto.randomUUID(),
+            kind: "calendar_hold",
+            summary: `Add ${title} to your calendar`,
+            payload: { title, start: start.toISOString(), end: end.toISOString(), location: p.location, url: r.url, notes: `Found by Nomi. Sign up or RSVP: ${r.url}` } satisfies CalendarEvent,
+          }
+        : undefined,
+    };
+  });
 }
 
 function curatedMessages(matches: AgentMatch[], intent: NonNullable<ReturnType<typeof detectMatchIntent>>): ChatMessage[] {
@@ -250,7 +304,8 @@ function normalizeModelReply(raw: string): { bubbles: string[]; memories: Memory
   let candidates: string[] = [];
   let memoryCandidates: MemoryCandidate[] = [];
   try {
-    const parsed = JSON.parse(raw) as { messages?: unknown; memories?: unknown };
+    const parsed = parseJson<{ messages?: unknown; memories?: unknown }>(raw);
+    if (!parsed) throw new Error("not JSON");
     if (Array.isArray(parsed.messages)) {
       candidates = parsed.messages.filter((item): item is string => typeof item === "string");
     }
@@ -312,12 +367,18 @@ function composeReply(base: ChatMessage[], extras: ChatMessage[]): ChatMessage[]
 
 export async function POST(req: Request) {
   const body = (await req.json()) as AgentRequest;
+  // The main-process store is the source of truth, so every bot sees what Daily and the others learned.
+  const shared = readMemory();
+  body.memories = shared.items;
   if (!isBotId(body.botId) || !Array.isArray(body.history)) {
     return Response.json({ error: "A valid bot and conversation history are required" }, { status: 400 });
   }
 
   if (body.approve) {
     const last = body.history.findLast((message) => message.approval?.id === body.approve);
+    if (last?.approval) {
+      updateMemory({ events: [{ source: "bot", kind: "booking", text: last.approval.summary, botId: body.botId }] });
+    }
     if (last?.approval?.kind === "calendar_hold") {
       const event = last.approval.payload as CalendarEvent;
       return Response.json({
@@ -383,17 +444,16 @@ export async function POST(req: Request) {
 
   const agent = AGENTS[body.botId];
   const intent = inferEnvironmentIntent(body, ask);
-  const results = await liveResults(body, ask, intent);
+  let results = await liveResults(body, ask, intent);
   const matches = !results.length && intent ? AGENT_MATCHES[body.botId][intent] : [];
   const sourceContext = results.length
-    ? `\nCURRENT LIVE OPTIONS (cards will be shown after your text):\n${results.map((result) => `- ${result.title ?? "Untitled"}: ${result.excerpts[0] ?? ""} (${result.url})`).join("\n")}`
+    ? `\nCURRENT LIVE OPTIONS, numbered (today is ${new Date().toDateString()}; cards will be shown after your text):\n${results.map((result, i) => `${i}. ${result.title ?? "Untitled"}: ${result.excerpts.join(" ").slice(0, 600)} (${result.url})`).join("\n")}
+Also return "events": the 1 or 2 upcoming options that best fit, best first, as [{"index": number, "title": "short name", "start": "ISO 8601 with timezone offset, or empty if unknown", "end": "ISO or empty", "location": "venue or neighborhood", "why": "one short line tying it to their goal"}]. Skip anything already past.`
     : matches.length
       ? `\nCURATED OFFLINE OPTIONS (cards and proposed actions will be shown after your text):\n${matches.map((match) => `- ${match.title}: ${match.subtitle}. Host: ${match.host ?? "unknown"}. People: ${match.people?.join(", ") ?? "not listed"}. Why it fits: ${match.why ?? match.message}`).join("\n")}`
       : "";
-  const memoryContext = body.memories?.length
-    ? `\nSHARED MEMORY ABOUT THE USER:\n${body.memories.slice(-30).map((memory) => `- [${memory.kind}] ${memory.text}`).join("\n")}`
-    : "\nSHARED MEMORY ABOUT THE USER: none yet.";
-  const modelReply = await chat([
+  const memoryContext = `\nSHARED MEMORY ABOUT THE USER (goals, progress, recent days from Nomi Daily, facts from every bot):\n${memoryPrompt(shared)}`;
+  const modelReply = await withTimeout(chat([
     {
       role: "system",
       content: `You are Nomi's ${agent.name} personal assistant. Your specialty is ${agent.specialty}.
@@ -443,15 +503,41 @@ Reply format:
       role: message.role === "bot" ? "assistant" as const : "user" as const,
       content: message.text,
     })),
-  ], { json: true }).catch(() => null);
+  ], { json: true, timeoutMs: 10_000 }), 18_000, `${agent.name} reply`);
 
   const normalized = modelReply ? normalizeModelReply(modelReply) : { bubbles: [], memories: [] };
-  const baseMessages: ChatMessage[] = normalized.bubbles.length
+  const pickKey = `picks:${body.botId}:${intent}:${results[0]?.url ?? ""}`;
+  let picks = results.length ? (parseJson<{ events?: LivePick[] }>(modelReply)?.events ?? []).filter((p) => typeof p?.index === "number") : [];
+  // Offline on stage: reuse the picks (with their times, so Approve still works) from the last good run.
+  if (picks.length) saveCached(pickKey, picks);
+  else if (results.length) picks = cached<LivePick[]>(pickKey) ?? [];
+  // A card needs a real upcoming time (so Approve makes a future invite), and no repeats.
+  const soon = Date.now() + 21 * 86_400_000;
+  picks = picks.filter((p, i, all) => {
+    const t = p.start ? new Date(p.start).getTime() : NaN;
+    return results[p.index] && t > Date.now() && t < soon && all.findIndex((x) => x.index === p.index || (x.title && x.title === p.title)) === i;
+  });
+  // Nothing good live: fall back to real upcoming SF events so the demo never shows a past or empty card.
+  const useDemo = Boolean(intent) && !picks.length;
+  if (useDemo) {
+    const demo = demoEvents(body.botId);
+    results = demo.map((e) => ({ url: e.url, title: e.title, publish_date: null, excerpts: [e.why] }) as SearchResult);
+    picks = demo.map((e, index) => ({ index, title: e.title, start: e.start, end: e.end, location: e.location, why: e.why }));
+  }
+  updateMemory({
+    items: normalized.memories,
+    events: body.message ? [{ source: "user", kind: "request", text: body.message.slice(0, 160), botId: body.botId }] : [],
+  });
+  const baseMessages: ChatMessage[] = useDemo
+    ? [{ id: crypto.randomUUID(), role: "bot", text: DEMO_LINE[body.botId] }]
+    : normalized.bubbles.length
     ? normalized.bubbles.map((text) => ({ id: crypto.randomUUID(), role: "bot", text }))
-    : matches.length
+    : results.length
+      ? [{ id: crypto.randomUUID(), role: "bot", text: "ok, found a couple that fit this week 👀" }]
+      : matches.length
       ? [curatedIntro(intent)]
       : fallbackMessages(body.botId, ask, Boolean(body.memories?.length));
-  if (normalized.bubbles.length && wantsCalendar(ask) && !matches.length) {
+  if (normalized.bubbles.length && wantsCalendar(ask) && !matches.length && !results.length) {
     baseMessages.push({
       id: crypto.randomUUID(),
       role: "bot",
@@ -459,8 +545,9 @@ Reply format:
       approval: calendarProposal(body.botId),
     });
   }
-  const extras = results.length ? resultMessages(results) : intent ? curatedMessages(matches, intent) : [];
-  const messages = composeReply(baseMessages, extras);
+  const extras = results.length ? resultMessages(results, picks) : intent ? curatedMessages(matches, intent) : [];
+  // Live finds: the friend-style texts, then the cards side by side (1 to 3 messages in all).
+  const messages = results.length ? [...baseMessages.filter((m) => !m.approval).slice(0, 1), ...extras] : composeReply(baseMessages, extras);
 
   return Response.json({
     messages,

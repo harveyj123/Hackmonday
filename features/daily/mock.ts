@@ -112,7 +112,7 @@ export function mockDay(date: string, text: string): StoryDay {
 // Make a model's JSON safe to render: fill defaults, clamp enums, give everything ids.
 export function normalizeDay(date: string, text: string, raw: Record<string, unknown>): StoryDay {
   const moods: Mood[] = ["great", "good", "meh", "low"];
-  const bots: BotId[] = ["career-growth", "social-hobbies"];
+  const bots: BotId[] = ["career-growth", "health-sports", "social-hobbies"];
   const segs = (Array.isArray(raw.segments) ? raw.segments : []) as Partial<DaySegment>[];
   const segments: DaySegment[] = segs.map((s, i) => {
     const fit = Number(s.goalFit);
@@ -183,7 +183,7 @@ export function mockAnalysis(days: StoryDay[], goals: Goal[]): PeriodAnalysis {
     { id: "p2", botId: "social-hobbies", title: "Replace solo apartment hours with a builder co-working spot", context: `${soloRed} red moments were solo, mostly at ${redPlaces[0] ?? "home"}.` },
   ];
   if (climbGoal && climbs < 2)
-    actionItems.push({ id: "p3", botId: "social-hobbies", title: "Book two climbing nights with a social crowd", context: `Only ${climbs} climbing session(s) in this stretch; goal is twice a week.` });
+    actionItems.push({ id: "p3", botId: "health-sports", title: "Book two climbing nights with a social crowd", context: `Only ${climbs} climbing session(s) in this stretch; goal is twice a week.` });
 
   const ratio = score.up - score.down;
   return {

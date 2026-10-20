@@ -63,6 +63,7 @@ export type InfoCard = {
   host?: string;
   why?: string;
   people?: string[];
+  source?: string; // the site a live result came from (e.g. "Luma"); shows "Found with Parallel"
 };
 
 export type ChatMessage = {
@@ -121,3 +122,52 @@ export type AgentResponse = {
   status: string;
   learnedMemories?: MemoryCandidate[];
 };
+
+// Shared memory store, owned by Bots and kept in the main process (electron/api/memory.ts).
+// Every bot reads it; Daily writes check-ins and plan outcomes into it.
+export type GoalProgress = {
+  id: string;
+  title: string;
+  botId?: BotId;
+  progress: number; // 0..1
+  note?: string;
+  updatedAt: string;
+};
+
+export type MemoryEvent = {
+  at: string;
+  source: "daily" | "bot" | "user";
+  kind: "checkin" | "plan" | "plan-done" | "plan-skipped" | "booking" | "request" | "note";
+  text: string;
+  botId?: BotId;
+};
+
+export type SharedMemory = { items: NomiMemory[]; goals: GoalProgress[]; events: MemoryEvent[]; updatedAt: string };
+
+// POST /api/memory merges; it never replaces.
+export type MemoryUpdate = {
+  items?: MemoryCandidate[];
+  events?: Omit<MemoryEvent, "at">[] | MemoryEvent[];
+  goals?: (Partial<GoalProgress> & { title: string })[];
+  forget?: string; // NomiMemory id
+  daily?: NomiMemory[]; // Daily's own entries (ids start with "daily-"); replaces the previous set
+};
+
+// POST /api/route: the "what do you need" box picks a bot.
+export type RouteRequest = { text: string };
+export type RouteResponse = { botId: BotId; reason: string };
+
+// POST /api/suggestions: bots scout proactively from memory; Sprout shows these as nudges.
+export type Suggestion = {
+  id: string;
+  botId: BotId;
+  title: string;
+  why: string;
+  when?: string;
+  where?: string;
+  url?: string;
+  source?: string; // "parallel" | "curated"
+  createdAt: string;
+};
+export type SuggestionsRequest = { limit?: number; botId?: BotId };
+export type SuggestionsResponse = { suggestions: Suggestion[] };
